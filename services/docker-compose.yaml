@@ -1,14 +1,12 @@
 version: '3.8'
 
 services:
-  app:
-    build: app/.
+  users:
+    build: users/.
     ports:
       - "8000:8000"
     volumes:
-      - ./app/src:/app/src
-    environment:
-      - ENVIRONMENT=development
+      - ./users/app:/app/app
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]

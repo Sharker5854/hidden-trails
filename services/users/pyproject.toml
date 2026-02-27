@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "hidden-trails"
+name = "users"
 version = "0.1.0"
-description = "Social platform for travelers for the preservation of local and regional monuments."
+description = "Microservices for operating with user logic."
 authors = ["Kiryanov Vladimir vovcha5854@gmail.com"]
 package-mode = false
 
