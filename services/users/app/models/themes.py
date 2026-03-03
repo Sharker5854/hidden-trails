@@ -2,8 +2,6 @@ from typing import List
 from sqlalchemy import String, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..db.session import Base
-from .geotags import Geotag
-from .users import User
 from .user_themes import user_themes
 
 

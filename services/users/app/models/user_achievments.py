@@ -3,7 +3,7 @@ from ..db.session import Base
 
 
 # Промежуточная таблица многие-ко-многим для юзеров и ачивок
-user_achievements = Table(
+user_achievments = Table(
     "user_achievements",
     Base.metadata,
     Column("user_id", Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),

@@ -1,12 +1,8 @@
 from typing import Optional, List
 from sqlalchemy import String, Integer, Boolean, DateTime
-from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..db.session import Base
-from .geotags import Geotag
-from .achievments import Achievment
-from .themes import Theme
-from .user_achievments import user_achievements
+from .user_achievments import user_achievments
 from .user_themes import user_themes
 from datetime import datetime
 
@@ -62,7 +58,7 @@ class User(Base):
     
     achievements: Mapped[List["Achievment"]] = relationship(
         "Achievment",
-        secondary=user_achievements,
+        secondary=user_achievments,
         back_populates="users"
     )
 

@@ -2,8 +2,7 @@ from typing import Optional, List
 from sqlalchemy import String, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..db.session import Base
-from .users import User
-from .user_achievments import user_achievements
+from .user_achievments import user_achievments
 
 
 class Achievment(Base):
@@ -25,6 +24,6 @@ class Achievment(Base):
 
     users: Mapped[List["User"]] = relationship(
         "User",
-        secondary=user_achievements,
+        secondary=user_achievments,
         back_populates="achievements"
     )

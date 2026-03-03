@@ -1,10 +1,8 @@
 from typing import Optional, List
-from sqlalchemy import String, Integer, DateTime, Text, ForeignKey, func
+from sqlalchemy import String, Integer, DateTime, Text, ForeignKey, Numeric
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..db.session import Base
-from .users import User
-from .themes import Theme
 from .geotag_themes import geotag_themes
 from datetime import datetime
 
@@ -55,15 +53,15 @@ class Geotag(Base):
 
 
 
-    latitude: Mapped[float] = mapped_column(  # От -90 до 90
+    latitude: Mapped[float] = mapped_column(
         "lat", 
-        func.numeric(10, 8), 
+        Numeric(precision=10, scale=8),
         nullable=False,
         index=True
     )
-    longitude: Mapped[float] = mapped_column(  # От -180 до 180
+    longitude: Mapped[float] = mapped_column(
         "lng", 
-        func.numeric(11, 8), 
+        Numeric(precision=11, scale=8),
         nullable=False,
         index=True
     )
