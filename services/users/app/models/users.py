@@ -1,16 +1,79 @@
-from typing import Optional
-from sqlalchemy import String, Integer, DateTime
-from sqlalchemy.orm import Mapped, mapped_column
+from typing import Optional, List
+from sqlalchemy import String, Integer, Boolean, DateTime
+from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..db.session import Base
+from .geotags import Geotag
+from .achievments import Achievment
+from .themes import Theme
+from .user_achievments import user_achievements
+from .user_themes import user_themes
 from datetime import datetime
 
 
 class User(Base):
     __tablename__ = "users"
     
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    email: Mapped[str] = mapped_column(String, unique=True, index=True)
-    hashed_password: Mapped[str]
-    name: Mapped[Optional[str]] = mapped_column(String)
-    surname: Mapped[Optional[str]] = mapped_column(String)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, index=True, autoincrement=True
+    )
+    email: Mapped[str] = mapped_column(
+        String(255), unique=True, index=True, nullable=False
+    )
+    phone: Mapped[Optional[str]] = mapped_column(
+        String(20), nullable=False
+    )
+    name: Mapped[Optional[str]] = mapped_column(
+        String(100), nullable=True
+    )
+    surname: Mapped[Optional[str]] = mapped_column(
+        String(100), nullable=True
+    )
+    nickname: Mapped[Optional[str]] = mapped_column(
+        String(50), unique=True, nullable=False, index=True
+    )
+    avatar_url: Mapped[Optional[str]] = mapped_column(
+        String(500), nullable=False # по умолчанию заполняем ссылкой на дефолтный аватар
+    )
+    hashed_password: Mapped[str] = mapped_column(
+        String(255), nullable=False
+    )
+    
+    register_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), 
+        default=datetime.utcnow, 
+        nullable=False
+    )
+    
+    is_moder: Mapped[bool] = mapped_column(
+        Boolean, default=False, index=True
+    )
+    is_admin: Mapped[bool] = mapped_column(
+        Boolean, default=False
+    )
+    is_premium: Mapped[bool] = mapped_column(
+        Boolean, default=False, index=True
+    )
+    
+
+    rating: Mapped[int] = mapped_column(
+        Integer, default=0  # в pydantic валидировать, чтобы 1 <= x <= 100
+    )
+    
+    achievements: Mapped[List["Achievment"]] = relationship(
+        "Achievment",
+        secondary=user_achievements,
+        back_populates="users"
+    )
+
+    themes: Mapped[List["Theme"]] = relationship(
+        "Theme",
+        secondary=user_themes,
+        back_populates="users"
+    )
+
+    geotags: Mapped[List["Geotag"]] = relationship(
+        "Geotag", 
+        back_populates="author",
+        cascade="all, delete-orphan"
+    )
