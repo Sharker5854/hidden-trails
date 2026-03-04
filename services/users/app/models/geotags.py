@@ -52,6 +52,13 @@ class Geotag(Base):
     )
 
 
+    comments: Mapped[List["Comment"]] = relationship(
+        "Comment", 
+        back_populates="geotag",
+        cascade="all, delete-orphan"
+    )
+
+
 
     latitude: Mapped[float] = mapped_column(
         "lat", 
