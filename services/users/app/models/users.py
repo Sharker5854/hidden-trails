@@ -79,3 +79,21 @@ class User(Base):
         back_populates="author",
         cascade="all, delete-orphan"
     )
+
+
+    followers: Mapped[List["User"]] = relationship(  # кто на меня подписан
+        "User",
+        secondary="user_follows",
+        primaryjoin="User.id == user_follows.c.following_id",   # я = following_id
+        secondaryjoin="User.id == user_follows.c.follower_id",  # они = follower_id
+        back_populates="following",
+        lazy="selectin" 
+    )
+    
+    following: Mapped[List["User"]] = relationship(  # на кого подписан я
+        "User",
+        secondary="user_follows",
+        primaryjoin="User.id == user_follows.c.follower_id",    # я = follower_id
+        secondaryjoin="User.id == user_follows.c.following_id", # они = following_id
+        back_populates="followers"
+    )

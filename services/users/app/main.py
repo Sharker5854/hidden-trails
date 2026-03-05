@@ -3,9 +3,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from .api.routers.login import router as login_router
 from .db.session import engine, Base
 from .models import *
-from .models.geotag_themes import geotag_themes
-from .models.user_achievments import user_achievments
-from .models.user_themes import user_themes
 
 
 
@@ -19,9 +16,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.on_event("startup")
 async def startup():
     async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
 
 
