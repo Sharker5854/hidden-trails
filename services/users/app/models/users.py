@@ -1,7 +1,7 @@
 from typing import Optional, List
 from sqlalchemy import String, Integer, Boolean, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from ..db.session import Base
+from .base import Base
 from .user_achievments import user_achievments
 from .user_themes import user_themes
 from datetime import datetime

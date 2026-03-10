@@ -1,5 +1,5 @@
 from sqlalchemy import Table, Integer, ForeignKey, Column
-from ..db.session import Base
+from .base import Base
 
 
 user_follows = Table(

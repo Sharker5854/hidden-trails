@@ -2,7 +2,7 @@ from typing import Optional, List
 from sqlalchemy import String, Integer, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
-from ..db.session import Base
+from .base import Base
 from .user_achievments import user_achievments
 
 

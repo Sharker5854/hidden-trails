@@ -7,6 +7,7 @@ from .geotag_themes import geotag_themes
 from .user_achievments import user_achievments
 from .user_themes import user_themes
 from .user_follows import user_follows
+from .base import Base
 
 
-__all__ = ["User", "Geotag", "Theme", "Achievment", "Comment"]
+__all__ = ["Base", "User", "Geotag", "Theme", "Achievment", "Comment"]

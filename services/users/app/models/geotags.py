@@ -2,7 +2,7 @@ from typing import Optional, List
 from sqlalchemy import String, Integer, DateTime, Text, ForeignKey, Numeric
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from ..db.session import Base
+from .base import Base
 from .geotag_themes import geotag_themes
 from datetime import datetime
 

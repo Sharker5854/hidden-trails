@@ -1,7 +1,7 @@
 from typing import List, Optional
-from sqlalchemy import String, Integer, Text, ForeignKey, DateTime
+from sqlalchemy import Integer, Text, ForeignKey, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from ..db.session import Base
+from .base import Base
 from datetime import datetime
 
 
