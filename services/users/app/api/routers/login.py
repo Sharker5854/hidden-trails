@@ -1,14 +1,146 @@
-from fastapi import APIRouter, Depends
+from typing import Optional, Annotated
+from fastapi import APIRouter, Depends, Form, HTTPException, status, Request, Response
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
 from sqlalchemy import text
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from ..deps import get_db
+from app.api.deps import get_db, get_current_user, get_auth_service, get_users_service
 from app.models import User, Theme, Geotag, Comment, Achievment
+from app.services.auth import AuthService
+from app.services.users import UsersService
+from app.schemas.users import UserPublic
+from app.schemas.auth import RegisterForm, LoginForm
 
 
 
-router = APIRouter()
+router = APIRouter(prefix="/auth", tags=["auth"])
+templates = Jinja2Templates(directory="app/templates")
+
+
+@router.get("/register", response_class=HTMLResponse)
+async def register_page(request: Request):
+    return templates.TemplateResponse(
+        "auth/register.html", {"request": request, "title": "Регистрация"}
+    )
+
+
+@router.post("/register")
+async def register(
+    request: Request,
+    response: Response,
+    form_data: Annotated[RegisterForm, Form(...)],
+    auth_svc: AuthService = Depends(get_auth_service),
+):
+    try:
+        form_data.validate_passwords_match()
+        
+        user = await auth_svc.register(
+            email=form_data.email,
+            nickname=form_data.nickname,
+            password=form_data.password
+        )
+    except ValueError as e:
+        return templates.TemplateResponse(
+            "auth/register.html",
+            {
+                "request": request,
+                "title": "Регистрация",
+                "error": str(e),
+            },
+            status_code=400
+        )
+
+    access_token = auth_svc.create_access_token(user.id)
+    refresh_token = auth_svc.create_refresh_token(user.id)
+    
+    resp = RedirectResponse("/auth/me", status_code=302)
+    resp.set_cookie("access_token", access_token, httponly=True, max_age=15*60)
+    resp.set_cookie("refresh_token", refresh_token, httponly=True, max_age=7*86400)
+    return resp
+
+
+
+@router.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request):
+    return templates.TemplateResponse("auth/login.html", {"request": request, "title": "Авторизация"})
+
+
+@router.post("/login")
+async def login(
+    request: Request,
+    response: Response,
+    form_data: Annotated[LoginForm, Form(...)],
+    auth_svc: AuthService = Depends(get_auth_service),
+):
+    user = await auth_svc.authenticate(form_data.email, form_data.password)
+    if not user:
+        return templates.TemplateResponse(
+            "auth/login.html",
+            {"request": request, "title": "Авторизация", "error": "Неверный email или пароль."},
+            status_code=400,
+        )
+
+    access_token = auth_svc.create_access_token(user.id)
+    refresh_token = auth_svc.create_refresh_token(user.id)
+
+    resp = RedirectResponse("/auth/me", status_code=status.HTTP_302_FOUND)
+    resp.set_cookie("access_token", access_token, httponly=True, max_age=15 * 60, samesite="lax")
+    resp.set_cookie("refresh_token", refresh_token, httponly=True, max_age=7 * 86400, samesite="lax")
+    return resp
+
+
+@router.get("/me")
+async def me(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+):
+    return UserPublic.model_validate(current_user)
+
+
+@router.get("/logout")
+async def logout(response: Response):
+    resp = RedirectResponse("/auth/login", status_code=status.HTTP_302_FOUND)
+    resp.delete_cookie("access_token")
+    resp.delete_cookie("refresh_token")
+    return resp
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 @router.get("/")

@@ -17,7 +17,7 @@ class User(Base):
         String(255), unique=True, index=True, nullable=False
     )
     phone: Mapped[Optional[str]] = mapped_column(
-        String(20), nullable=False
+        String(20), nullable=True
     )
     name: Mapped[Optional[str]] = mapped_column(
         String(100), nullable=True
@@ -25,7 +25,7 @@ class User(Base):
     surname: Mapped[Optional[str]] = mapped_column(
         String(100), nullable=True
     )
-    nickname: Mapped[Optional[str]] = mapped_column(
+    nickname: Mapped[str] = mapped_column(
         String(50), unique=True, nullable=False, index=True
     )
     avatar_url: Mapped[Optional[str]] = mapped_column(

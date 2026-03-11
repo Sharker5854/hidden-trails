@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{{ title }}</title>
+    </head>
+    <body>
+        <form method="POST">
+            {% if error %}
+                <div class="error">{{ error }}</div>
+            {% endif %}
+        
+            <input name="email" type="email" placeholder="Email" required>
+            <input name="nickname" type="text" placeholder="Ник" required>
+            <input name="password" type="password" placeholder="Пароль" required minlength="4">
+            <input name="password_repeat" type="password" placeholder="Повторите пароль" required>
+            <button type="submit">Регистрация</button>
+        </form>
+    </body>
+</html>
