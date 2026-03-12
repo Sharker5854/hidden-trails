@@ -3,6 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     app_name: str = "Users Service"
+    app_host: str
 
     log_level: str
     secret_key: str

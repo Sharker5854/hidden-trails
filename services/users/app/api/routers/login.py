@@ -1,11 +1,12 @@
 from typing import Optional, Annotated
 from fastapi import APIRouter, Depends, Form, HTTPException, status, Request, Response
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import text
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from jose import jwt
 from app.api.deps import get_db, get_current_user, get_auth_service, get_users_service
 from app.models import User, Theme, Geotag, Comment, Achievment
 from app.services.auth import AuthService
@@ -89,6 +90,41 @@ async def login(
     resp.set_cookie("access_token", access_token, httponly=True, max_age=15 * 60, samesite="lax")
     resp.set_cookie("refresh_token", refresh_token, httponly=True, max_age=7 * 86400, samesite="lax")
     return resp
+
+
+@router.post("/refresh")
+async def refresh(
+    request: Request,
+    response: Response,
+    auth_svc: AuthService = Depends(get_auth_service),
+    users_svc: UsersService = Depends(get_users_service),
+):
+    refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "No refresh token.")
+    
+    try:
+        payload = auth_svc.decode_token(refresh_token)
+        if payload.type != "refresh":
+            raise ValueError("Wrong token type.")
+        
+        user = await users_svc.get_by_id(int(payload.sub))
+        if not user:
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User not found.")
+        
+        new_access = auth_svc.create_access_token(user.id)
+        
+        response.set_cookie(
+            "access_token", new_access, 
+            httponly=True, max_age=15*60, samesite="lax"
+        )
+        
+        return Response(status_code=200)
+        
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Refresh token expired.")
+    except ValueError as e:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail=str(e))
 
 
 @router.get("/me")
