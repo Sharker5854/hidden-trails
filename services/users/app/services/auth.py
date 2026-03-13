@@ -41,7 +41,7 @@ class AuthService:
         try:
             return TokenPayload.model_validate(jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm]))
         except JWTError:
-            raise ValueError("Invalid token.")
+            raise jwt.ExpiredSignatureError("Invalid token.")
 
 
     async def authenticate(self, email: str, password: str) -> Optional[UserPublic]:

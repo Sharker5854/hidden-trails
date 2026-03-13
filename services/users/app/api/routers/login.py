@@ -113,13 +113,13 @@ async def refresh(
             raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User not found.")
         
         new_access = auth_svc.create_access_token(user.id)
-        
         response.set_cookie(
             "access_token", new_access, 
             httponly=True, max_age=15*60, samesite="lax"
         )
+        response.status_code = 200
         
-        return Response(status_code=200)
+        return response
         
     except jwt.ExpiredSignatureError:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Refresh token expired.")

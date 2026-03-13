@@ -51,18 +51,19 @@ async def get_current_user(
 ) -> User:
     auth = request.headers.get("Authorization")
     if auth and auth.startswith("Bearer "):
-        token = auth.split(" ")[1]
+        access_token = auth.split(" ")[1]
     else:
-        token = request.cookies.get("access_token")
-        if not token:
-            raise HTTPException(401, "Not authenticated.")
+        access_token = request.cookies.get("access_token")
+        refresh_token = request.cookies.get("refresh_token")
+        if not access_token:
+            if not refresh_token:
+                raise HTTPException(401, "Not authenticated.")
     
     try:
-        payload = auth_svc.decode_token(token)
+        if not access_token:  # но есть рефреш
+            raise jwt.ExpiredSignatureError("Access token expired. Going to refresh...")
+        payload = auth_svc.decode_token(access_token)
     except jwt.ExpiredSignatureError:
-        refresh_token = request.cookies.get("refresh_token")
-        if not refresh_token:
-            raise HTTPException(401, "Access expired and no refresh token.")
         
         # шлём внутренний запрос на обновление access-токена с использованием переданного refresh-токена
         refresh_resp = await client.post(
@@ -78,7 +79,7 @@ async def get_current_user(
             raise HTTPException(401, "No new access token.")
         
         payload = auth_svc.decode_token(new_token)
-    
+        response.set_cookie("access_token", new_token, httponly=True, max_age=15 * 60, samesite="lax")
     except ValueError as e:
         raise HTTPException(401, str(e))
     
@@ -88,12 +89,5 @@ async def get_current_user(
     user = await users_svc.get_by_id(int(payload.sub))
     if not user:
         raise HTTPException(401, "User not found.")
-    
-    response.set_cookie("access_token", new_token, httponly=True, max_age=15 * 60, samesite="lax")
-
-    print("------------------------------------")
-    print("Refresh:", refresh_token)
-    print("New access:", new_token)
-    print("------------------------------------")
     
     return user
