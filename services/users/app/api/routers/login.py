@@ -1,23 +1,29 @@
+import uuid
 from typing import Optional, Annotated
-from fastapi import APIRouter, Depends, Form, HTTPException, status, Request, Response
+from pathlib import Path
+from fastapi import APIRouter, Depends, Form, HTTPException, status, Request, Response, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
+from pydantic import EmailStr
 from sqlalchemy import text
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from jose import jwt
+from app.core.config import settings
 from app.api.deps import get_db, get_current_user, get_auth_service, get_users_service
 from app.models import User, Theme, Geotag, Comment, Achievment
 from app.services.auth import AuthService
 from app.services.users import UsersService
-from app.schemas.users import UserPublic
+from app.schemas.users import UserPublic, UserUpdateForm
 from app.schemas.auth import RegisterForm, LoginForm
 
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 templates = Jinja2Templates(directory="app/templates")
+AVATARS_DIR = settings.base_dir / "static" / "media" / "user-avatars"
+AVATARS_DIR.mkdir(parents=True, exist_ok=True)
 
 
 @router.get("/register", response_class=HTMLResponse)
@@ -127,12 +133,92 @@ async def refresh(
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail=str(e))
 
 
+
+
 @router.get("/me")
-async def me(
+async def me_page(
     request: Request,
     current_user: User = Depends(get_current_user),
 ):
-    return UserPublic.model_validate(current_user)
+    current_user = UserPublic.model_validate(current_user)
+    return templates.TemplateResponse("auth/me.html", {
+        "request": request, 
+        "current_user": current_user
+    })
+
+
+@router.post("/me")
+async def me_post(
+    request: Request,
+    users_svc: Annotated[UsersService, Depends(get_users_service)],
+
+    email: EmailStr = Form(...),
+    nickname: str = Form(...),
+    phone: Optional[str] = Form(None),
+    name: Optional[str] = Form(None),
+    surname: Optional[str] = Form(None),
+    is_moder: bool = Form(False),
+    is_admin: bool = Form(False),
+    is_premium: bool = Form(False),
+    rating: int = Form(...),
+    avatar_file: Optional[UploadFile] = File(None, alias="avatar_url"),
+
+    current_user: User = Depends(get_current_user),
+):
+    form_data = {
+        "email": email,
+        "nickname": nickname,
+        "phone": phone,
+        "name": name,
+        "surname": surname,
+        "is_moder": is_moder,
+        "is_admin": is_admin,
+        "is_premium": is_premium,
+        "rating": rating,
+    }
+
+    try:
+        validated_form = UserUpdateForm.model_validate(form_data)
+    except ValueError as e:
+        return templates.TemplateResponse(
+            "auth/me.html",
+            {
+                "request": request,
+                "current_user": current_user,
+                "error": f"Ошибка валидации: {e}",
+            },
+            status_code=400,
+        )
+    
+    new_avatar_path = None
+    if avatar_file and avatar_file.filename:
+        ext = Path(avatar_file.filename).suffix
+        filename = f"user_{current_user.id}_{uuid.uuid4().hex}{ext}"
+        disk_path = AVATARS_DIR / filename
+        contents = await avatar_file.read()
+        disk_path.write_bytes(contents)
+        new_avatar_path = f"{filename}"
+    
+    try:
+        updated_user = await users_svc.update_user(
+            user=current_user,
+            form=validated_form,
+            avatar_url=new_avatar_path,
+        )
+    except ValueError as e:
+        return templates.TemplateResponse(
+            "auth/me.html",
+            {
+                "request": request,
+                "current_user": current_user,
+                "error": f"{e}",
+            },
+            status_code=400,
+        )
+    
+    return RedirectResponse("/auth/me", status_code=302)
+
+
 
 
 @router.get("/logout")

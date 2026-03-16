@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from .api.routers.login import router as login_router
 from .db.session import engine
@@ -19,3 +20,5 @@ app.add_middleware(
 
 
 app.include_router(login_router)
+
+app.mount("/static", StaticFiles(directory="app/static"), name="static")

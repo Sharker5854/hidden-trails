@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Профиль {{ current_user.nickname }}</title>
+    </head>
+    <body>
+        <h2>Профиль {{ current_user.nickname }}</h2>
+        <form method="POST" enctype="multipart/form-data">
+            {% if error %}
+                <div class="error">{{ error }}</div>
+            {% endif %}
+        
+            <p><input name="email" type="email" placeholder="Email..." value="{{ current_user.email }}" required></p>
+            <p><input name="nickname" type="text" placeholder="Nickname..." value="{{ current_user.nickname }}" required></p>
+            <p><input name="phone" type="number" placeholder="Phone..." value="{{ current_user.phone }}"></p>
+            <p><input name="name" type="text" placeholder="Name..." value="{% if current_user.name %}{{ current_user.name }}{% endif %}"></p>
+            <p><input name="surname" type="text" placeholder="Surname..." value="{% if current_user.surname %}{{ current_user.surname }}{% endif %}"></p>
+
+            <p><fieldset>
+                <legend>Avatar</legend>
+                <div>
+                    <input name="avatar_url" id="avatar_url" type="file" accept="image/*"/>
+                    <br>
+                    <img id="avatar_preview" src="{{ url_for('static', path='media/user-avatars/' + current_user.avatar_url) }}" alt="Avatar preview">
+
+                    <script>
+                        const avatar_input = document.getElementById('avatar_url');
+                        const avatar_preview = document.getElementById('avatar_preview');
+
+                        avatar_input.addEventListener('change', function(e) {
+                            const file = e.target.files[0];
+                            if (file) {
+                                const reader = new FileReader();
+                                
+                                reader.onload = function(event) {
+                                    avatar_preview.src = event.target.result;
+                                }
+                                
+                                reader.readAsDataURL(file);
+                            } else {
+                                avatar_preview.src = '#';
+                                avatar_preview.style.display = 'none';
+                            }
+                        });
+                    </script>
+                    <style>
+                        #avatar_preview {
+                            max-width: 80px;
+                            max-height: 80px;
+                            display: block;
+                            margin-top: 10px;
+                        }
+                    </style>
+                </div>
+            </fieldset></p>
+
+            <p><fieldset>
+                <legend>Roots</legend>
+                <div>
+                    <input name="is_moder" id="is_moder" type="checkbox"  {% if current_user.is_moder %}checked{% endif %} />
+                    <label for="is_moder">Is moderator?</label>
+                </div>
+
+                <div>
+                    <input name="is_admin" id="is_admin" type="checkbox"  {% if current_user.is_admin %}checked{% endif %} />
+                    <label for="is_admin">Is admin?</label>
+                </div>
+
+                <div>
+                    <input name="is_premium" id="is_premium" type="checkbox"  {% if current_user.is_premium %}checked{% endif %} />
+                    <label for="is_premium">Is premium?</label>
+                </div>
+            </fieldset></p>
+
+            <p>
+                <input name="rating" id="rating" type="range" min="1" max="100" step="1" value="{{ current_user.rating }}">
+                Rating: <output id="rating_value"></output>
+            </p>
+            <script>
+                const rating_value = document.querySelector("#rating_value");
+                const rating_input = document.querySelector("#rating");
+                rating_value.textContent = rating_input.value;
+                rating_input.addEventListener("input", (event) => {
+                    rating_value.textContent = event.target.value;
+                });
+            </script>
+
+            <p>Registered at: <b>{{ current_user.register_at }}</b></p>
+            <button type="submit">Сохранить</button>
+        </form>
+    </body>
+</html>

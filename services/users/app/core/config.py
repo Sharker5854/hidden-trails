@@ -1,9 +1,12 @@
+from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import DirectoryPath
 
 
 class Settings(BaseSettings):
     app_name: str = "Users Service"
     app_host: str
+    base_dir: DirectoryPath = Path(__file__).resolve().parents[1]
 
     log_level: str
     secret_key: str
