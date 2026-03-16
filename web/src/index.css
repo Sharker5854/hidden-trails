@@ -163,3 +163,26 @@ body {
   border-radius: 12px;
   overflow: hidden;
 }
+
+.marker {
+  border: none;
+  background: transparent;
+  font-size: 28px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+}
+
+.popup-card {
+  min-width: 180px;
+}
+
+.popup-card h3 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+}
+
+.popup-card p {
+  margin: 0;
+  color: #444;
+}

@@ -1,65 +1,82 @@
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-
-const customIcon = new L.Icon({
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-  iconRetinaUrl:
-    'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
+import Map, { Marker, Popup, NavigationControl } from 'react-map-gl/maplibre';
+import { useState } from 'react';
 
 const places = [
   {
     id: 1,
     name: 'Красная площадь',
     description: 'Тестовая геометка в центре Москвы',
-    position: [55.75393, 37.620795],
+    longitude: 37.620795,
+    latitude: 55.75393,
   },
   {
     id: 2,
     name: 'Парк Горького',
     description: 'Пример карточки места',
-    position: [55.729876, 37.603943],
+    longitude: 37.603943,
+    latitude: 55.729876,
   },
 ];
 
 export default function App() {
+  const [selectedPlace, setSelectedPlace] = useState(null);
+
   return (
     <div className="app">
       <header className="header">
         <h1>Hidden Trails</h1>
-        <p>Тестовая карта с метками</p>
+        <p>Карта с пользовательскими метками</p>
       </header>
 
       <main className="main">
         <div className="map-wrapper">
-          <MapContainer
-            center={[55.751244, 37.618423]}
-            zoom={11}
-            scrollWheelZoom={true}
-            style={{ height: '100%', width: '100%' }}
+          <Map
+            initialViewState={{
+              longitude: 37.618423,
+              latitude: 55.751244,
+              zoom: 11,
+            }}
+            style={{ width: '100%', height: '100%' }}
+            mapStyle="https://api.maptiler.com/maps/streets-v2/style.json?key=5qPdBRdyS5TmY2C2HAV4"
           >
-            <TileLayer
-              attribution='&copy; OpenStreetMap contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
+            <NavigationControl position="top-right" />
 
             {places.map((place) => (
-              <Marker key={place.id} position={place.position} icon={customIcon}>
-                <Popup>
-                  <div>
-                    <h3 style={{ margin: '0 0 8px 0' }}>{place.name}</h3>
-                    <p style={{ margin: 0 }}>{place.description}</p>
-                  </div>
-                </Popup>
+              <Marker
+                key={place.id}
+                longitude={place.longitude}
+                latitude={place.latitude}
+                anchor="bottom"
+              >
+                <button
+                  className="marker"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedPlace(place);
+                  }}
+                  aria-label={place.name}
+                >
+                  📍
+                </button>
               </Marker>
             ))}
-          </MapContainer>
+
+            {selectedPlace && (
+              <Popup
+                longitude={selectedPlace.longitude}
+                latitude={selectedPlace.latitude}
+                anchor="bottom"
+                offset={20}
+                closeOnClick={false}
+                onClose={() => setSelectedPlace(null)}
+              >
+                <div className="popup-card">
+                  <h3>{selectedPlace.name}</h3>
+                  <p>{selectedPlace.description}</p>
+                </div>
+              </Popup>
+            )}
+          </Map>
         </div>
       </main>
     </div>

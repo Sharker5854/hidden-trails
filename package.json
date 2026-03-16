@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "leaflet": "^1.9.4",
-    "react-leaflet": "^5.0.0"
+    "maplibre-gl": "^5.20.1",
+    "react-map-gl": "^8.1.0"
   }
 }
