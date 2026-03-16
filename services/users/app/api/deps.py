@@ -10,6 +10,7 @@ from app.services.auth import AuthService
 from app.services.users import UsersService
 from app.models.users import User
 from app.schemas.auth import TokenPayload
+from app.services.achievments import AchievmentsService
 from ..db.session import AsyncSessionLocal
 
 
@@ -91,3 +92,25 @@ async def get_current_user(
         raise HTTPException(401, "User not found.")
     
     return user
+
+
+
+async def admin_user(
+    current_user: User = Depends(get_current_user)
+) -> User:
+    """
+    Проверяем, что пользователь — админ.
+    """
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only admins can access.",
+        )
+    return current_user
+
+
+
+def get_achievments_service(
+    db: AsyncSession = Depends(get_db)
+) -> AchievmentsService:
+    return AchievmentsService(db)

@@ -23,12 +23,6 @@ class Achievment(Base):
         String(500), nullable=False
     )
 
-    awarded_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), 
-        default=datetime.utcnow, 
-        nullable=False
-    )
-
     users: Mapped[List["User"]] = relationship(
         "User",
         secondary=user_achievments,

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{{ title }}</title>
+    </head>
+    <body>
+        <h2>Создание нового достижения</h2>
+        <form method="POST" enctype="multipart/form-data">
+            {% if error %}
+                <div class="error">{{ error }}</div>
+            {% endif %}
+        
+            <input name="title" type="text" placeholder="Title..." required>
+            
+            <p><fieldset>
+                <legend>Achievment picture</legend>
+                <div>
+                    <input name="picture_url" id="picture_url" type="file" accept="image/*" required/>
+                    <br>
+                    <img id="picture_preview" src="#">
+
+                    <script>
+                        const picture_input = document.getElementById('picture_url');
+                        const picture_preview = document.getElementById('picture_preview');
+
+                        picture_input.addEventListener('change', function(e) {
+                            const file = e.target.files[0];
+                            if (file) {
+                                const reader = new FileReader();
+                                
+                                reader.onload = function(event) {
+                                    picture_preview.src = event.target.result;
+                                    picture_preview.style.display = 'block';
+                                }
+                                
+                                reader.readAsDataURL(file);
+                            } else {
+                                picture_preview.src = '#';
+                                picture_preview.style.display = 'none';
+                            }
+                        });
+                    </script>
+                    <style>
+                        #picture_preview {
+                            max-width: 80px;
+                            max-height: 80px;
+                            display: none;
+                            margin-top: 10px;
+                        }
+                    </style>
+                </div>
+            </fieldset></p>
+
+            <button type="submit">Создать</button>
+        </form>
+    </body>
+</html>

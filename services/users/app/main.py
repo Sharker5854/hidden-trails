@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from .api.routers.login import router as login_router
+from .api.routers.achievments import router as achievments_router
 from .db.session import engine
 from .models import *
 from .models.base import Base
@@ -20,5 +21,6 @@ app.add_middleware(
 
 
 app.include_router(login_router)
+app.include_router(achievments_router)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")

@@ -22,6 +22,7 @@ from app.schemas.auth import RegisterForm, LoginForm
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 templates = Jinja2Templates(directory="app/templates")
+
 AVATARS_DIR = settings.base_dir / "static" / "media" / "user-avatars"
 AVATARS_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -163,7 +164,7 @@ async def me_post(
     rating: int = Form(...),
     avatar_file: Optional[UploadFile] = File(None, alias="avatar_url"),
 
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user)
 ):
     form_data = {
         "email": email,
