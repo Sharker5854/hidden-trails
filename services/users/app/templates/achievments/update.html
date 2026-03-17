@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{{ title }}</title>
+    </head>
+    <body>
+        <h2>Редактирование достижения</h2>
+        <form method="POST" enctype="multipart/form-data">
+            {% if error %}
+                <div class="error">{{ error }}</div>
+            {% endif %}
+        
+            <input name="title" type="text" value="{{ achievment.title }}" required>
+            
+            <p><fieldset>
+                <legend>Achievment picture</legend>
+                <div>
+                    <input name="picture_url" id="picture_url" value="{{ achievment.picture_url }}" type="file" accept="image/*"/>
+                    <br>
+                    <img id="picture_preview" src="{{ url_for('static', path='media/achievment-pictures/' + achievment.picture_url) }}">
+
+                    <script>
+                        const picture_input = document.getElementById('picture_url');
+                        const picture_preview = document.getElementById('picture_preview');
+
+                        picture_input.addEventListener('change', function(e) {
+                            const file = e.target.files[0];
+                            if (file) {
+                                const reader = new FileReader();
+                                
+                                reader.onload = function(event) {
+                                    picture_preview.src = event.target.result;
+                                }
+                                
+                                reader.readAsDataURL(file);
+                            } else {
+                                picture_preview.src = '#';
+                            }
+                        });
+                    </script>
+                    <style>
+                        #picture_preview {
+                            max-width: 80px;
+                            max-height: 80px;
+                            display: block;
+                            margin-top: 10px;
+                        }
+                    </style>
+                </div>
+            </fieldset></p>
+
+            <button type="submit">Редактировать</button>
+        </form>
+    </body>
+</html>

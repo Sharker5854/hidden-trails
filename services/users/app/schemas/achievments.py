@@ -3,8 +3,16 @@ from pydantic import BaseModel, EmailStr, Field, field_validator, model_validato
 
 
 
+class AchievmentPublic(BaseModel):
+    id: int
+    title: str
+    picture_url: str
+    
+    class Config:
+        from_attributes = True
 
-class AchievmentsCreate(BaseModel):
+
+class AchievmentsCreateUpdate(BaseModel):
     title: str
     
     @field_validator("title")

@@ -38,7 +38,7 @@ class UsersService:
         self,
         user: User,
         form: UserUpdateForm,
-        avatar_url: Optional[str] = None,
+        avatar_url: Optional[str] = None
     ) -> User:
         data = form.model_dump()
 
@@ -46,7 +46,6 @@ class UsersService:
             if await self.get_by_email(data["email"]):
                 raise ValueError("Email уже занят другим пользователем!")
 
-        # Nickname изменился?
         if data["nickname"] != user.nickname:
             if await self.get_by_nickname(data["nickname"]):
                 raise ValueError("Nickname уже занят!")
