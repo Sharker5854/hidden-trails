@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{{ title }}</title>
+    </head>
+    <body>
+        <h2>Редактирование темы</h2>
+        <form method="POST" enctype="multipart/form-data">
+            {% if error %}
+                <div class="error">{{ error }}</div>
+            {% endif %}
+        
+            <input name="name" type="text" value="{{ theme.name }}" required>
+
+            <button type="submit">Редактировать</button>
+        </form>
+    </body>
+</html>

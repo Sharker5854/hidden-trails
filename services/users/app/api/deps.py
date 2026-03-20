@@ -9,8 +9,8 @@ from app.core.config import settings
 from app.services.auth import AuthService
 from app.services.users import UsersService
 from app.models.users import User
-from app.schemas.auth import TokenPayload
 from app.services.achievments import AchievmentsService
+from app.services.themes import ThemesService
 from ..db.session import AsyncSessionLocal
 
 
@@ -110,7 +110,14 @@ async def admin_user(
 
 
 
-def get_achievments_service(
+async def get_achievments_service(
     db: AsyncSession = Depends(get_db)
 ) -> AchievmentsService:
     return AchievmentsService(db)
+
+
+
+async def get_themes_service(
+    db: AsyncSession = Depends(get_db)
+) -> ThemesService:
+    return ThemesService(db)

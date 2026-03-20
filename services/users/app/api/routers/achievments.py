@@ -112,11 +112,9 @@ async def edit_achievment(
 ):
     achievment = await achievments_svc.get_by_id(id)
     
-    # Проверяем существование
     if not achievment:
         raise HTTPException(404, f"Достижение c ID {id} не найдено!")
     
-    # 🔥 GET: показываем форму
     if request.method == "GET":
         return templates.TemplateResponse(
             "achievments/update.html",
@@ -128,7 +126,6 @@ async def edit_achievment(
             },
         )
     
-    # 🔥 POST: обрабатываем форму
     form_data = {"title": title}
     try:
         validated_form = AchievmentsCreateUpdate.model_validate(form_data)
@@ -145,7 +142,6 @@ async def edit_achievment(
             status_code=400,
         )
     
-    # Обработка новой картинки
     new_picture_path = achievment.picture_url
     if picture_file and picture_file.filename:
         ext = Path(picture_file.filename).suffix or ".png"
@@ -180,5 +176,4 @@ async def edit_achievment(
             status_code=400,
         )
     
-    # PRG: редирект на список
     return RedirectResponse("/achievment/all", status_code=302)
