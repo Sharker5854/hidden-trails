@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Создание геометки</title>
+    </head>
+<body>
+    <h2>Создание новой геометки</h2>
+    
+    {% if error %}
+        <div style="color: red;">{{ error }}</div>
+    {% endif %}
+    
+    <form method="POST" enctype="multipart/form-data">
+        <p><label>Название:</label><br>
+        <input name="title" type="text" required maxlength="255"></p>
+        
+        <p><label>Текст:</label><br>
+        <textarea name="text" rows="5"></textarea></p>
+        
+        <p>
+            <label>Координаты:</label><br>
+            <input name="latitude" type="number" step="any" placeholder="Например: 55.7558" required>
+            <input name="longitude" type="number" step="any" placeholder="Например: 37.6176" required>
+        </p>
+        
+        <p><label>Предупреждения:</label><br>
+        <textarea name="warnings" rows="3" placeholder="Будьте осторожны..."></textarea></p>
+        
+        <p><label>Советы:</label><br>
+        <textarea name="tips" rows="3" placeholder="Лучшее время..."></textarea></p>
+        
+        <p>
+            <label>Темы (макс. 5):</label><br>
+            {% for theme in themes %}
+                <label>
+                    <input type="checkbox" 
+                           name="theme_ids" 
+                           value="{{ theme.id }}"
+                           {% if theme.id in selected_themes %}
+                               checked
+                           {% endif %}>
+                    {{ theme.name }}
+                </label><br>
+            {% endfor %}
+        </p>
+        
+        <p>
+            <label>Медиа-файлы (множественно):</label><br>
+            <input type="file" name="media_files" multiple accept="image/*,video/*">
+        </p>
+        
+        <button type="submit">Создать</button>
+    </form>
+</body>
+</html>

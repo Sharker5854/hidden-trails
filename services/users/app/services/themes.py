@@ -21,7 +21,7 @@ class ThemesService:
         return result.scalars().first()
     
     async def get_all_themes(self) -> List[ThemePublic]:
-        stmt = select(Theme).order_by(Theme.id.desc())
+        stmt = select(Theme).order_by(Theme.name)
         result = await self.db.execute(stmt)
         themes = result.scalars().all()
         return [ThemePublic.model_validate(a) for a in themes]

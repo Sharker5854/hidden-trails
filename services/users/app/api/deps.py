@@ -11,6 +11,7 @@ from app.services.users import UsersService
 from app.models.users import User
 from app.services.achievments import AchievmentsService
 from app.services.themes import ThemesService
+from app.services.geotags import GeotagsService
 from ..db.session import AsyncSessionLocal
 
 
@@ -121,3 +122,10 @@ async def get_themes_service(
     db: AsyncSession = Depends(get_db)
 ) -> ThemesService:
     return ThemesService(db)
+
+
+
+def get_geotags_service(
+    db: AsyncSession = Depends(get_db)
+) -> GeotagsService:
+    return GeotagsService(db)
