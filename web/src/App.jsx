@@ -5,6 +5,7 @@ import MapPage from './pages/MapPage';
 import ProfilePage from './pages/ProfilePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import './App.css';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState('feed');
