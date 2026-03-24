@@ -1,10 +1,10 @@
 from typing import Optional, List
-from sqlalchemy import select
+from sqlalchemy import select, and_
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.geotags import Geotag
 from app.models.geotag_themes import geotag_themes
-from app.schemas.geotags import GeotagCreateForm, GeotagPublic
+from app.schemas.geotags import GeotagCreateForm, GeotagPublic, GeotagUpdateForm
 
 
 
@@ -63,3 +63,50 @@ class GeotagsService:
         if not geotag:
             return None
         return GeotagPublic.from_orm(geotag)
+    
+
+    async def update_geotag(
+        self,
+        geotag: Geotag,
+        form: GeotagUpdateForm,
+        media_files: Optional[List[str]] = [],
+    ) -> Geotag:
+
+        if not geotag:
+            raise ValueError("Геометка не найдена!")
+        
+        geotag.title = form.title
+        geotag.text = form.text
+        geotag.latitude = form.latitude
+        geotag.longitude = form.longitude
+        geotag.warnings = form.warnings
+        geotag.tips = form.tips
+        
+        if media_files != []:
+            geotag.media_files = media_files
+        
+        current_theme_ids = {t.id for t in geotag.themes}
+        new_theme_ids = set(form.theme_ids)
+        
+        # Удаляем лишние темы
+        for theme_id in current_theme_ids - new_theme_ids:
+            stmt = geotag_themes.delete().where(
+                and_(
+                    geotag_themes.c.geotag_id == geotag.id,
+                    geotag_themes.c.theme_id == theme_id
+                )
+            )
+            await self.db.execute(stmt)
+        
+        # Добавляем новые темы
+        for theme_id in new_theme_ids - current_theme_ids:
+            stmt = geotag_themes.insert().values(
+                geotag_id=geotag.id,
+                theme_id=theme_id
+            )
+            await self.db.execute(stmt)
+        
+        await self.db.commit()
+        await self.db.refresh(geotag)
+        return geotag
+

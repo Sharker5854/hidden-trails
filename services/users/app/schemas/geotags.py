@@ -58,3 +58,21 @@ class GeotagCreateForm(BaseModel):
     warnings: Optional[str] = Field(None, max_length=3000)
     tips: Optional[str] = Field(None, max_length=3000)
     theme_ids: Optional[List[int]] = Field(..., min_items=1, max_items=5)
+
+
+
+class GeotagUpdateForm(BaseModel):
+    title: str = Field(..., min_length=3, max_length=255)
+    text: str = Field(..., max_length=10000)
+    latitude: float = Field(..., ge=-90, le=90)
+    longitude: float = Field(..., ge=-180, le=180)
+    warnings: Optional[str] = Field(None, max_length=3000)
+    tips: Optional[str] = Field(None, max_length=3000)
+    theme_ids: Optional[List[int]] = Field(..., min_items=1, max_items=5)
+    
+    @field_validator("theme_ids")
+    @classmethod
+    def validate_themes(cls, v: List[int]):
+        if len(v) > 5:
+            raise ValueError("Максимум 5 тем")
+        return v

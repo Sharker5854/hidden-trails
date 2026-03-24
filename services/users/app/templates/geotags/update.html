@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Изменение геометки {{ geotag.title }}</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <h2>Изменение геометки {{ geotag.title }}</h2>
+    
+    {% if error %}
+        <div>{{ error }}</div>
+    {% endif %}
+    
+    <form method="POST" enctype="multipart/form-data">
+        <p><label>Название:</label><br>
+        <input name="title" value="{{ geotag.title }}" required></p>
+        
+        <p><label>Текст:</label><br>
+        <textarea name="text" rows="5">{{ geotag.text or '' }}</textarea></p>
+        
+        <p>
+            <label>Координаты:</label><br>
+            <input name="latitude" type="number" step="any" value="{{ geotag.latitude }}" required>
+            <input name="longitude" type="number" step="any" value="{{ geotag.longitude }}" required>
+        </p>
+        
+        <p><label>Предупреждения:</label><br>
+        <textarea name="warnings">{{ geotag.warnings or '' }}</textarea></p>
+        
+        <p><label>Советы:</label><br>
+        <textarea name="tips">{{ geotag.tips or '' }}</textarea></p>
+        
+        <p>
+            <label>Темы:</label><br>
+            {% for theme in themes %}
+                <label>
+                    <input type="checkbox" 
+                           name="theme_ids" 
+                           value="{{ theme.id }}"
+                           {% if theme.id in selected_theme_ids %}checked{% endif %}>
+                    {{ theme.name }}
+                </label><br>
+            {% endfor %}
+        </p>
+        
+        <p>
+            <label>Добавить файлы:</label><br>
+            <input type="file" name="media_files" multiple accept="image/*,video/*">
+            <br><small>Текущие файлы: {{ geotag.media_files|length }}</small>
+        </p>
+        
+        <button type="submit">Изменить</button>
+        <a href="/geotag/show/{{ geotag.id }}">Отмена</a>
+    </form>
+</body>
+</html>
