@@ -1,4 +1,4 @@
-export default function PlaceCard({ place }) {
+export default function PlaceCard({ place, onOpenDetails }) {
   return (
     <article className="place-card">
       <img className="place-card__image" src={place.image} alt={place.title} />
@@ -13,7 +13,13 @@ export default function PlaceCard({ place }) {
         <p className="place-card__description">{place.description}</p>
 
         <div className="place-card__actions">
-          <button className="primary-button">Подробнее</button>
+          <button
+            className="primary-button"
+            onClick={() => onOpenDetails(place)}
+          >
+            Подробнее
+          </button>
+
           <button className="secondary-button">Сохранить</button>
         </div>
       </div>

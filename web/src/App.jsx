@@ -7,6 +7,7 @@ import MapPage from './pages/MapPage';
 import ProfilePage from './pages/ProfilePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import PlaceDetailsPage from './pages/PlaceDetailsPage';
 
 const AUTH_STORAGE_KEY = 'hidden-trails-auth';
 
@@ -14,6 +15,7 @@ export default function App() {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [currentPage, setCurrentPage] = useState('login');
   const [isReady, setIsReady] = useState(false);
+  const [selectedPlace, setSelectedPlace] = useState(null);
 
   useEffect(() => {
     const savedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
@@ -45,6 +47,7 @@ export default function App() {
     localStorage.removeItem(AUTH_STORAGE_KEY);
     setIsAuthorized(false);
     setCurrentPage('login');
+    setSelectedPlace(null);
   };
 
   const handleNavigate = (page) => {
@@ -54,6 +57,11 @@ export default function App() {
     }
 
     setCurrentPage(page);
+  };
+
+  const handleOpenDetails = (place) => {
+    setSelectedPlace(place);
+    setCurrentPage('place-details');
   };
 
   const renderPage = () => {
@@ -79,10 +87,16 @@ export default function App() {
       case 'map':
         return <MapPage />;
       case 'profile':
-        return <ProfilePage />;
+        return <ProfilePage onOpenDetails={handleOpenDetails} />;
+      case 'place-details':
+        return selectedPlace ? (
+          <PlaceDetailsPage place={selectedPlace} />
+        ) : (
+          <FeedPage onOpenDetails={handleOpenDetails} />
+        );
       case 'feed':
       default:
-        return <FeedPage />;
+        return <FeedPage onOpenDetails={handleOpenDetails} />;
     }
   };
 

@@ -1,7 +1,7 @@
 import { mockPlaces } from '../data/mockPlaces';
 import PlaceCard from '../components/place/PlaceCard';
 
-export default function ProfilePage() {
+export default function ProfilePage({ onOpenDetails }) {
   return (
     <main className="page">
       <section className="profile-card">
@@ -16,7 +16,11 @@ export default function ProfilePage() {
         <h2 className="section-title">Мои публикации</h2>
         <div className="feed-grid">
           {mockPlaces.slice(0, 2).map((place) => (
-            <PlaceCard key={place.id} place={place} />
+            <PlaceCard
+              key={place.id}
+              place={place}
+              onOpenDetails={onOpenDetails}
+            />
           ))}
         </div>
       </section>
