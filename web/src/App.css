@@ -279,4 +279,22 @@
     flex-direction: column;
     align-items: flex-start;
   }
+
+
+  .auth-form__link-button {
+  display: block;
+  margin: 14px auto 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.2s ease;
+}
+
+.auth-form__link-button:hover {
+  color: var(--color-primary);
+}
 }
