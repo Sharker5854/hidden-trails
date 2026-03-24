@@ -297,4 +297,14 @@
 .auth-form__link-button:hover {
   color: var(--color-primary);
 }
+
+.nav__button--logout {
+  background: #f3f4f6;
+  color: var(--color-text-secondary);
+}
+
+.nav__button--logout:hover {
+  background: #e5e7eb;
+  color: var(--color-text-primary);
+}
 }
