@@ -5,12 +5,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.geotags import Geotag
 from app.models.geotag_themes import geotag_themes
 from app.schemas.geotags import GeotagCreateForm, GeotagPublic, GeotagUpdateForm
+from app.integrations.yandexgpt import YandexGPT
 
 
 
 class GeotagsService:
     def __init__(self, db: AsyncSession):
         self.db = db
+        self.yndx_gpt = YandexGPT()
 
 
     async def get_by_id(self, geotag_id: int) -> Optional[Geotag]:
@@ -43,18 +45,32 @@ class GeotagsService:
             tips=form.tips,
             likes_count=0,
         )
-        self.db.add(geotag)
-        await self.db.flush()
+        validation = await self.yndx_gpt.validate_profanity_and_falsification(
+            f"""
+            Координаты: latitude={geotag.latitude}, longitude={geotag.longitude}.
+
+            Основной текст статьи:
+            '{geotag.text}'
+
+            Текст раздела статьи с предупреждениями для путешественников:
+            '{geotag.warnings}'
+
+            Текст раздела статьи с советами для путешественников:
+            '{geotag.tips}'
+            """
+        )
+        # self.db.add(geotag)
+        # await self.db.flush()
         
-        for theme_id in form.theme_ids:
-            stmt = geotag_themes.insert().values(
-                geotag_id=geotag.id,
-                theme_id=theme_id
-            )
-            await self.db.execute(stmt)
+        # for theme_id in form.theme_ids:
+        #     stmt = geotag_themes.insert().values(
+        #         geotag_id=geotag.id,
+        #         theme_id=theme_id
+        #     )
+        #     await self.db.execute(stmt)
         
-        await self.db.commit()
-        await self.db.refresh(geotag)
+        # await self.db.commit()
+        # await self.db.refresh(geotag)
         return geotag
     
 

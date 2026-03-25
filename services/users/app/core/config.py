@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import DirectoryPath
@@ -17,6 +18,10 @@ class Settings(BaseSettings):
     algorithm: str
     access_token_expire_minutes: int
     refresh_token_expire_days: int
+
+    # Integrations
+    yandex_cloud_api_key: str = os.getenv("YANDEX_CLOUD_API_KEY")
+    yandex_cloud_folder_id: str = os.getenv("YANDEX_CLOUD_FOLDER_ID")
 
     
     model_config = SettingsConfigDict(

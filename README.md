@@ -10,8 +10,8 @@ Social platform for travelers for the preservation of local and regional monumen
         <p>В директории alembic/versions создастся первый файл миграции, который при первом запуске контейнера приложения подхватится и применится к БД, создав таблицы описаные в models/</p>
     </li>
     <li>
-        <b>Также в локальных переменных окружения должна быть установленна env YANDEX_CLOUD_API_KEY.</b>
-        <p>В ней будет лежать API-ключ из YandexCloud для доступа к YandexGPT модели.</p>
+        <b>Также в локальных переменных окружения должны быть установлены env'ы YANDEX_CLOUD_API_KEY и YANDEX_CLOUD_CATALOG_ID.</b>
+        <p>В них будут лежать API-ключ и id каталога из YandexCloud для доступа к YandexGPT модели.</p>
     </li>
 </ol>
 
