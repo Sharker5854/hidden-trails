@@ -1,4 +1,5 @@
 import pprint
+import json
 from .utils import HttpxClient
 from app.core.config import settings
 
@@ -8,12 +9,12 @@ class YandexGPT:
         self.__api_key = settings.yandex_cloud_api_key
         self.__folder_id = settings.yandex_cloud_folder_id
         self._model = "yandexgpt-lite"
-        self.httpx_client = HttpxClient(host="https://ai.api.cloud.yandex.net/v1")
+        self.httpx_client = HttpxClient(host="https://llm.api.cloud.yandex.net")
 
     def _request_headers(self) -> dict:
         return {
             "Content-Type": "application/json",
-            "Authorization": f"Api-Key {self.__api_key}"
+            "Authorization": f"Bearer {self.__api_key}"
         }
     
     def _model_uri(self) -> str:
@@ -52,17 +53,17 @@ class YandexGPT:
             model_temperature: float = 0.1,
             max_output_tokens: int = 500
         ) -> bool:
-        json = {
+        payload = {
             "modelUri": self._model_uri(),
             "completionOptions": {
                 "stream": False,
                 "temperature": model_temperature,
-                "maxTokens": str(max_output_tokens)
+                "max_tokens": max_output_tokens,
             },
             "messages": [
                 {
                     "role": "system",
-                    "text": '''
+                    "text": """
                         Ты умный модератор тревел-приложения, в котором на интерактивной карте пользователи могут создавать геометки и прикреплять к ним самописные статьи с информацией об указанном месте.
                         Твоя задача распознавать две вещи: 
                         наличие в тексте ненормативной лексики в любом виде (включая завуалированные варианты вроде транслита, замены символов на схожие символы и на цифры),
@@ -73,23 +74,24 @@ class YandexGPT:
                         В качестве ответа предоставляй короткую строку, состоящую лишь из двух слов через запятую.
                         Первое слово: True, если в тексте отсутствует ненормативная лексика, и False - если присутствует.
                         Второе слово: True, если вся информация в тексте правдоподобна, и False - если есть фальсификация.
-                    '''
+                    """             
                 },
                 # ЕЩЕ НАДО ПРОВЕРЯТЬ СООТВЕТСТВИЕ ПЕРЕДАННЫХ КООРДИНАТ ТОМУ ОПИСАНИЮ ОБЪЕКТА, КОТОРЫЙ В СТАТЬЕ. Вдруг корды эйфелевой башни, а рассказывается про Тити-Каку
                 # Также передавать название статьи и прочую инфу тоже для валидации
                 {
                     "role": "user",
-                    "text": f'''
-                        Текст статьи и точные координаты геометки:
+                    "text": f"""
+                        Текст статьи и точные координаты геометки: 
                         {text}
-                    '''
+                    """
                 }
             ]
         }
+        print(payload)
         response = await self.send_request(
             "POST",
-            "/",
-            json=json,
+            "/foundationModels/v1/completion",
+            json=payload,
             headers=self._request_headers()
         )
         pprint.pprint(response.json())

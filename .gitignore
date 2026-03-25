@@ -1,3 +1,5 @@
+services/users/app/static/media/**/*.{png,jpg,jpeg,webp}
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

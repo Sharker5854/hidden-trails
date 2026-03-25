@@ -45,20 +45,7 @@ class GeotagsService:
             tips=form.tips,
             likes_count=0,
         )
-        validation = await self.yndx_gpt.validate_profanity_and_falsification(
-            f"""
-            Координаты: latitude={geotag.latitude}, longitude={geotag.longitude}.
-
-            Основной текст статьи:
-            '{geotag.text}'
-
-            Текст раздела статьи с предупреждениями для путешественников:
-            '{geotag.warnings}'
-
-            Текст раздела статьи с советами для путешественников:
-            '{geotag.tips}'
-            """
-        )
+        validation_result = await self.yndx_gpt.validate_profanity_and_falsification(f"Координаты: latitude={geotag.latitude}, longitude={geotag.longitude}. Основной текст статьи: '{geotag.text}'. Текст раздела статьи с предупреждениями для путешественников: '{geotag.warnings}'. Текст раздела статьи с советами для путешественников: '{geotag.tips}'.")
         # self.db.add(geotag)
         # await self.db.flush()
         
