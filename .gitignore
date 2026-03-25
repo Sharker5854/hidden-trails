@@ -1,4 +1,7 @@
-services/users/app/static/media/**/*.{png,jpg,jpeg,webp}
+services/users/app/static/media/**/*.png
+services/users/app/static/media/**/*.jpg
+services/users/app/static/media/**/*.jpeg
+services/users/app/static/media/**/*.webp
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
