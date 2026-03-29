@@ -1,7 +1,21 @@
-export function getProfileRequest() {
-  throw new Error('getProfileRequest is not implemented yet');
+import { apiRequest, handleApiResponse } from './client';
+import { buildFormData } from '../utils/formData';
+
+export async function getProfileRequest() {
+  const response = await apiRequest('/auth/me', {
+    method: 'GET',
+  });
+
+  return handleApiResponse(response);
 }
 
-export function updateProfileRequest() {
-  throw new Error('updateProfileRequest is not implemented yet');
+export async function updateProfileRequest(profileData) {
+  const formData = buildFormData(profileData);
+
+  const response = await apiRequest('/auth/me', {
+    method: 'POST',
+    body: formData,
+  });
+
+  return handleApiResponse(response);
 }

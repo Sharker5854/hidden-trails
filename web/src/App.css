@@ -549,3 +549,145 @@
   font-size: 14px;
   font-weight: 500;
 }
+
+.profile-card--large {
+  align-items: flex-start;
+}
+
+.profile-card__avatar--large {
+  width: 96px;
+  height: 96px;
+  font-size: 36px;
+}
+
+.profile-card__body {
+  flex: 1;
+  width: 100%;
+}
+
+.profile-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.profile-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.profile-details__item {
+  background: var(--color-surface-muted);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.profile-details__label {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.profile-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profile-edit-form__actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.profile-menu__avatar-image {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  box-shadow: 0 6px 18px rgba(47, 133, 90, 0.22);
+}
+
+.profile-card--large {
+  align-items: flex-start;
+}
+
+.profile-card__avatar--large {
+  width: 96px;
+  height: 96px;
+  font-size: 36px;
+}
+
+.profile-card__avatar-image-large {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  flex-shrink: 0;
+  box-shadow: 0 10px 24px rgba(31, 41, 55, 0.12);
+}
+
+.profile-card__body {
+  flex: 1;
+  width: 100%;
+}
+
+.profile-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.profile-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.profile-details__item {
+  background: var(--color-surface-muted);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.profile-details__label {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.profile-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profile-edit-form__actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.auth-form__success {
+  margin: 12px 0 0;
+  color: var(--color-primary);
+  font-size: 14px;
+  font-weight: 600;
+}

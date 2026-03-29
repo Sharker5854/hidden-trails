@@ -24,6 +24,9 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState('login');
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [mapFocusedPlace, setMapFocusedPlace] = useState(null);
+  const [profileUser, setProfileUser] = useState(null);
+
+  const activeUser = profileUser || user;
 
   const handleLogin = async ({ email, password }) => {
     await login({ email, password });
@@ -42,7 +45,6 @@ export default function App() {
       password,
       password_repeat,
     });
-
     setCurrentPage('feed');
   };
 
@@ -51,6 +53,7 @@ export default function App() {
     setCurrentPage('login');
     setSelectedPlace(null);
     setMapFocusedPlace(null);
+    setProfileUser(null);
   };
 
   const handleNavigate = (page) => {
@@ -74,7 +77,7 @@ export default function App() {
   };
 
   const renderPage = () => {
-    if (isLoading) {
+    if (isLoading && !isAuthorized) {
       return (
         <main className="page auth-page">
           <div className="auth-form">
@@ -114,7 +117,7 @@ export default function App() {
           <ProfilePage
             onOpenDetails={handleOpenDetails}
             onOpenOnMap={handleOpenOnMap}
-            user={user}
+            onProfileLoaded={setProfileUser}
           />
         );
       case 'place-details':
@@ -143,7 +146,11 @@ export default function App() {
   return (
     <div className="app-shell">
       {isAuthorized && (
-        <Header currentPage={currentPage} onNavigate={handleNavigate} />
+        <Header
+          currentPage={currentPage}
+          onNavigate={handleNavigate}
+          user={activeUser}
+        />
       )}
       {renderPage()}
     </div>

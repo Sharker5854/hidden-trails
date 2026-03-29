@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-export default function Header({ currentPage, onNavigate }) {
+export default function Header({ currentPage, onNavigate, user }) {
   const items = [
     { key: 'feed', label: 'Лента' },
     { key: 'map', label: 'Карта' },
@@ -32,6 +32,13 @@ export default function Header({ currentPage, onNavigate }) {
     onNavigate('logout');
   };
 
+  const avatarLetter =
+    user?.nickname?.trim()?.charAt(0)?.toUpperCase() ||
+    user?.email?.trim()?.charAt(0)?.toUpperCase() ||
+    'U';
+
+  const avatarUrl = user?.avatar_url || null;
+
   return (
     <header className="header">
       <div className="header__inner">
@@ -61,7 +68,15 @@ export default function Header({ currentPage, onNavigate }) {
               onClick={() => setIsMenuOpen((prev) => !prev)}
               aria-label="Открыть меню профиля"
             >
-              <div className="profile-menu__avatar">A</div>
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt="Аватар пользователя"
+                  className="profile-menu__avatar-image"
+                />
+              ) : (
+                <div className="profile-menu__avatar">{avatarLetter}</div>
+              )}
             </button>
 
             {isMenuOpen && (
