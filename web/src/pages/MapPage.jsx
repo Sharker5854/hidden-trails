@@ -1,9 +1,23 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Map, { Marker, Popup, NavigationControl } from 'react-map-gl/maplibre';
 import { mockPlaces } from '../data/mockPlaces';
 
-export default function MapPage() {
-  const [selectedPlace, setSelectedPlace] = useState(null);
+export default function MapPage({ focusedPlace }) {
+  const [selectedPlace, setSelectedPlace] = useState(focusedPlace || null);
+  const mapRef = useRef(null);
+
+  useEffect(() => {
+    if (!focusedPlace || !mapRef.current) return;
+
+    setSelectedPlace(focusedPlace);
+
+    mapRef.current.flyTo({
+      center: [focusedPlace.longitude, focusedPlace.latitude],
+      zoom: 14,
+      duration: 1800,
+      essential: true,
+    });
+  }, [focusedPlace]);
 
   return (
     <main className="page">
@@ -14,6 +28,7 @@ export default function MapPage() {
 
       <div className="map-wrapper">
         <Map
+          ref={mapRef}
           initialViewState={{
             longitude: 37.618423,
             latitude: 55.751244,

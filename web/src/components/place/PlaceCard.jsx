@@ -1,4 +1,4 @@
-export default function PlaceCard({ place, onOpenDetails }) {
+export default function PlaceCard({ place, onOpenDetails, onOpenOnMap }) {
   return (
     <article className="place-card">
       <img className="place-card__image" src={place.image} alt={place.title} />
@@ -20,7 +20,12 @@ export default function PlaceCard({ place, onOpenDetails }) {
             Подробнее
           </button>
 
-          <button className="secondary-button">Сохранить</button>
+          <button
+            className="secondary-button"
+            onClick={() => onOpenOnMap(place)}
+          >
+            На карту!
+          </button>
         </div>
       </div>
     </article>

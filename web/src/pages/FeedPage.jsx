@@ -1,7 +1,7 @@
 import PlaceCard from '../components/place/PlaceCard';
 import { mockPlaces } from '../data/mockPlaces';
 
-export default function FeedPage({ onOpenDetails }) {
+export default function FeedPage({ onOpenDetails, onOpenOnMap }) {
   return (
     <main className="page">
       <section className="hero">
@@ -15,6 +15,7 @@ export default function FeedPage({ onOpenDetails }) {
             key={place.id}
             place={place}
             onOpenDetails={onOpenDetails}
+            onOpenOnMap={onOpenOnMap}
           />
         ))}
       </section>

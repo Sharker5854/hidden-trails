@@ -1,7 +1,7 @@
 import { mockPlaces } from '../data/mockPlaces';
 import PlaceCard from '../components/place/PlaceCard';
 
-export default function ProfilePage({ onOpenDetails }) {
+export default function ProfilePage({ onOpenDetails, onOpenOnMap }) {
   return (
     <main className="page">
       <section className="profile-card">
@@ -20,6 +20,7 @@ export default function ProfilePage({ onOpenDetails }) {
               key={place.id}
               place={place}
               onOpenDetails={onOpenDetails}
+              onOpenOnMap={onOpenOnMap}
             />
           ))}
         </div>

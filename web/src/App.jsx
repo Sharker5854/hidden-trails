@@ -16,6 +16,7 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState('login');
   const [isReady, setIsReady] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState(null);
+  const [mapFocusedPlace, setMapFocusedPlace] = useState(null);
 
   useEffect(() => {
     const savedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
@@ -48,6 +49,7 @@ export default function App() {
     setIsAuthorized(false);
     setCurrentPage('login');
     setSelectedPlace(null);
+    setMapFocusedPlace(null);
   };
 
   const handleNavigate = (page) => {
@@ -62,6 +64,12 @@ export default function App() {
   const handleOpenDetails = (place) => {
     setSelectedPlace(place);
     setCurrentPage('place-details');
+  };
+
+  const handleOpenOnMap = (place) => {
+    setSelectedPlace(place);
+    setMapFocusedPlace(place);
+    setCurrentPage('map');
   };
 
   const renderPage = () => {
@@ -85,18 +93,34 @@ export default function App() {
 
     switch (currentPage) {
       case 'map':
-        return <MapPage />;
+        return <MapPage focusedPlace={mapFocusedPlace} />;
       case 'profile':
-        return <ProfilePage onOpenDetails={handleOpenDetails} />;
+        return (
+          <ProfilePage
+            onOpenDetails={handleOpenDetails}
+            onOpenOnMap={handleOpenOnMap}
+          />
+        );
       case 'place-details':
         return selectedPlace ? (
-          <PlaceDetailsPage place={selectedPlace} />
+          <PlaceDetailsPage
+            place={selectedPlace}
+            onOpenOnMap={handleOpenOnMap}
+          />
         ) : (
-          <FeedPage onOpenDetails={handleOpenDetails} />
+          <FeedPage
+            onOpenDetails={handleOpenDetails}
+            onOpenOnMap={handleOpenOnMap}
+          />
         );
       case 'feed':
       default:
-        return <FeedPage onOpenDetails={handleOpenDetails} />;
+        return (
+          <FeedPage
+            onOpenDetails={handleOpenDetails}
+            onOpenOnMap={handleOpenOnMap}
+          />
+        );
     }
   };
 

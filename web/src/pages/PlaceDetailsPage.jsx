@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function PlaceDetailsPage({ place }) {
+export default function PlaceDetailsPage({ place, onOpenOnMap }) {
   const [commentText, setCommentText] = useState('');
 
   const handleSubmit = (event) => {
@@ -20,11 +20,30 @@ export default function PlaceDetailsPage({ place }) {
         </div>
 
         <div className="place-details__media">
-          <img src={place.image} alt={place.title} className="place-details__image" />
+          <img
+            src={place.image}
+            alt={place.title}
+            className="place-details__image"
+          />
+
+          <div className="place-details__stats">
+            <div className="place-details__stat">❤️ {place.likes}</div>
+            <div className="place-details__stat">👁 {place.views}</div>
+          </div>
         </div>
 
         <div className="place-details__content">
-          <h1 className="place-details__title">{place.title}</h1>
+          <div className="place-details__content-top">
+            <h1 className="place-details__title">{place.title}</h1>
+
+            <button
+              className="secondary-button"
+              onClick={() => onOpenOnMap(place)}
+            >
+              На карту!
+            </button>
+          </div>
+
           <p className="place-details__text">{place.fullDescription}</p>
         </div>
 

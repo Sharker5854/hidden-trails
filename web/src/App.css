@@ -524,8 +524,21 @@
     font-size: 28px;
   }
 
+  .place-details__content-top {
+  align-items: flex-start;
+}
+
   .place-details__content,
   .comments-section {
     padding: 18px;
   }
+}
+
+.place-details__content-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
 }
