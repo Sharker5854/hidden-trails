@@ -1,13 +1,25 @@
 import { useState } from 'react';
 
-export default function RegisterPage({ onRegister, onGoToLogin }) {
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('eve');
+export default function RegisterPage({
+  onRegister,
+  onGoToLogin,
+  isLoading,
+  error,
+}) {
+  const [nickname, setNickname] = useState('eve');
+  const [email, setEmail] = useState('eve@example.com');
   const [password, setPassword] = useState('eve');
+  const [passwordRepeat, setPasswordRepeat] = useState('eve');
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    onRegister({ username, email, password });
+
+    await onRegister({
+      email,
+      nickname,
+      password,
+      password_repeat: passwordRepeat,
+    });
   };
 
   return (
@@ -16,12 +28,12 @@ export default function RegisterPage({ onRegister, onGoToLogin }) {
         <h1>Регистрация</h1>
 
         <label className="auth-form__label">
-          Username
+          Никнейм
           <input
             className="auth-form__input"
             type="text"
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
+            value={nickname}
+            onChange={(event) => setNickname(event.target.value)}
             placeholder="eve"
           />
         </label>
@@ -30,10 +42,10 @@ export default function RegisterPage({ onRegister, onGoToLogin }) {
           Email
           <input
             className="auth-form__input"
-            type="text"
+            type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            placeholder="eve"
+            placeholder="eve@example.com"
           />
         </label>
 
@@ -48,14 +60,32 @@ export default function RegisterPage({ onRegister, onGoToLogin }) {
           />
         </label>
 
-        <button type="submit" className="primary-button auth-form__button">
-          Создать аккаунт
+        <label className="auth-form__label">
+          Повторите пароль
+          <input
+            className="auth-form__input"
+            type="password"
+            value={passwordRepeat}
+            onChange={(event) => setPasswordRepeat(event.target.value)}
+            placeholder="eve"
+          />
+        </label>
+
+        {error ? <p className="auth-form__error">{error}</p> : null}
+
+        <button
+          type="submit"
+          className="primary-button auth-form__button"
+          disabled={isLoading}
+        >
+          {isLoading ? 'Создаём аккаунт...' : 'Создать аккаунт'}
         </button>
 
         <button
           type="button"
           className="auth-form__link-button"
           onClick={onGoToLogin}
+          disabled={isLoading}
         >
           Уже есть аккаунт? Войти
         </button>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import './App.css';
 
 import Header from './components/layout/Header';
@@ -8,45 +8,46 @@ import ProfilePage from './pages/ProfilePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import PlaceDetailsPage from './pages/PlaceDetailsPage';
-
-const AUTH_STORAGE_KEY = 'hidden-trails-auth';
+import { useAuth } from './hooks/useAuth';
 
 export default function App() {
-  const [isAuthorized, setIsAuthorized] = useState(false);
+  const {
+    user,
+    isAuthorized,
+    isLoading,
+    authError,
+    login,
+    register,
+    logout,
+  } = useAuth();
+
   const [currentPage, setCurrentPage] = useState('login');
-  const [isReady, setIsReady] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [mapFocusedPlace, setMapFocusedPlace] = useState(null);
 
-  useEffect(() => {
-    const savedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
-
-    if (savedAuth === 'true') {
-      setIsAuthorized(true);
-      setCurrentPage('feed');
-    } else {
-      setIsAuthorized(false);
-      setCurrentPage('login');
-    }
-
-    setIsReady(true);
-  }, []);
-
-  const handleLogin = () => {
-    localStorage.setItem(AUTH_STORAGE_KEY, 'true');
-    setIsAuthorized(true);
+  const handleLogin = async ({ email, password }) => {
+    await login({ email, password });
     setCurrentPage('feed');
   };
 
-  const handleRegister = () => {
-    localStorage.setItem(AUTH_STORAGE_KEY, 'true');
-    setIsAuthorized(true);
+  const handleRegister = async ({
+    email,
+    nickname,
+    password,
+    password_repeat,
+  }) => {
+    await register({
+      email,
+      nickname,
+      password,
+      password_repeat,
+    });
+
     setCurrentPage('feed');
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem(AUTH_STORAGE_KEY);
-    setIsAuthorized(false);
+  const handleLogout = async () => {
+    await logout();
     setCurrentPage('login');
     setSelectedPlace(null);
     setMapFocusedPlace(null);
@@ -73,12 +74,24 @@ export default function App() {
   };
 
   const renderPage = () => {
+    if (isLoading) {
+      return (
+        <main className="page auth-page">
+          <div className="auth-form">
+            <h1>Загрузка...</h1>
+          </div>
+        </main>
+      );
+    }
+
     if (!isAuthorized) {
       if (currentPage === 'register') {
         return (
           <RegisterPage
             onRegister={handleRegister}
             onGoToLogin={() => setCurrentPage('login')}
+            isLoading={isLoading}
+            error={authError}
           />
         );
       }
@@ -87,6 +100,8 @@ export default function App() {
         <LoginPage
           onLogin={handleLogin}
           onGoToRegister={() => setCurrentPage('register')}
+          isLoading={isLoading}
+          error={authError}
         />
       );
     }
@@ -99,6 +114,7 @@ export default function App() {
           <ProfilePage
             onOpenDetails={handleOpenDetails}
             onOpenOnMap={handleOpenOnMap}
+            user={user}
           />
         );
       case 'place-details':
@@ -123,10 +139,6 @@ export default function App() {
         );
     }
   };
-
-  if (!isReady) {
-    return null;
-  }
 
   return (
     <div className="app-shell">

@@ -1,12 +1,12 @@
 import { useState } from 'react';
 
-export default function LoginPage({ onLogin, onGoToRegister }) {
+export default function LoginPage({ onLogin, onGoToRegister, isLoading, error }) {
   const [email, setEmail] = useState('eve');
   const [password, setPassword] = useState('eve');
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    onLogin({ email, password });
+    await onLogin({ email, password });
   };
 
   return (
@@ -18,10 +18,10 @@ export default function LoginPage({ onLogin, onGoToRegister }) {
           Email
           <input
             className="auth-form__input"
-            type="text"
+            type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            placeholder="eve"
+            placeholder="eve@example.com"
           />
         </label>
 
@@ -36,14 +36,21 @@ export default function LoginPage({ onLogin, onGoToRegister }) {
           />
         </label>
 
-        <button type="submit" className="primary-button auth-form__button">
-          Войти
+        {error ? <p className="auth-form__error">{error}</p> : null}
+
+        <button
+          type="submit"
+          className="primary-button auth-form__button"
+          disabled={isLoading}
+        >
+          {isLoading ? 'Входим...' : 'Войти'}
         </button>
 
         <button
           type="button"
           className="auth-form__link-button"
           onClick={onGoToRegister}
+          disabled={isLoading}
         >
           Зарегистрироваться
         </button>

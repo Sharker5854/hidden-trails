@@ -542,3 +542,10 @@
   margin-bottom: 16px;
   flex-wrap: wrap;
 }
+
+.auth-form__error {
+  margin: 0 0 12px;
+  color: #b91c1c;
+  font-size: 14px;
+  font-weight: 500;
+}
