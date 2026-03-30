@@ -4,6 +4,7 @@ from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
 from .geotag_themes import geotag_themes
+from .user_saved_geotags import user_saved_geotags
 from datetime import datetime
 
 
@@ -42,6 +43,12 @@ class Geotag(Base):
     )
     author: Mapped["User"] = relationship(  # обратная связь, чтобы в таблице User в поле geotags синхронизировались те статьи, которые принадлежат автору
         "User", back_populates="geotags"
+    )
+
+    savers: Mapped[List["User"]] = relationship(
+        "User",
+        secondary=user_saved_geotags,
+        back_populates="saved_geotags"
     )
 
 

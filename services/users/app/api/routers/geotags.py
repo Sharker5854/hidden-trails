@@ -13,6 +13,16 @@ from app.services.geotags import GeotagsService
 from app.api.deps import get_current_user, get_themes_service, get_geotags_service
 
 
+# Эндпоинт сохранения геометки других пользователей
+# Эндпоинты под создание комментов и сабкомментов
+# Эндпоинт под лайки
+# Лента
+# Подписка на пользователя
+# Страница с картой
+# Админка
+# Забыли пароль?
+
+
 
 router = APIRouter(prefix="/geotag", tags=["geotags"])
 templates = Jinja2Templates(directory="app/templates")

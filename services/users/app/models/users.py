@@ -3,6 +3,7 @@ from sqlalchemy import String, Integer, Boolean, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
 from .user_achievments import user_achievments
+from .user_saved_geotags import user_saved_geotags
 from .user_themes import user_themes
 from datetime import datetime
 
@@ -72,6 +73,13 @@ class User(Base):
         "Geotag", 
         back_populates="author",
         cascade="all, delete-orphan"
+    )
+
+    saved_geotags: Mapped[List["Geotag"]] = relationship(
+        "Geotag",
+        secondary=user_saved_geotags,
+        back_populates="savers",
+        lazy="selectin"
     )
 
     comments: Mapped[List["Comment"]] = relationship(
