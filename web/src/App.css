@@ -691,3 +691,203 @@
   font-size: 14px;
   font-weight: 600;
 }
+
+.hero--with-action {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.geotag-page-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-soft);
+  border: 1px solid var(--color-border);
+}
+
+.geotag-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.geotag-form__coords {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.geotag-form__actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.geotag-form__hint {
+  margin: 4px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+}
+
+.theme-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.theme-selector__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-surface-muted);
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+.place-details__avatar-image {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+.place-details__content-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.place-details__image--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  background: var(--color-surface-muted);
+}
+
+@media (max-width: 768px) {
+  .geotag-form__coords {
+    grid-template-columns: 1fr;
+  }
+}
+
+.place-card__themes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+
+.place-details__themes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 18px;
+}
+
+.theme-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--color-mint-soft);
+  color: var(--color-primary);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.place-details__note {
+  margin-top: 18px;
+  padding: 16px 18px;
+  border-radius: 14px;
+}
+
+.place-details__note h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.place-details__note p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.place-details__note--warning {
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.place-details__note--tip {
+  background: #effcf6;
+  color: #166534;
+}
+
+.profile-achievements {
+  margin-bottom: 28px;
+}
+
+.profile-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.profile-section-header__hint {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+}
+
+.achievements-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 18px;
+  margin-bottom: 8px;
+}
+
+.achievement-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-soft);
+  border: 1px solid var(--color-border);
+}
+
+.achievement-card__image {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  display: block;
+}
+
+.achievement-card__placeholder {
+  height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 42px;
+  background: var(--color-surface-muted);
+}
+
+.achievement-card__content {
+  padding: 16px;
+}
+
+.achievement-card__content h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+@media (max-width: 768px) {
+  .achievements-grid {
+    grid-template-columns: 1fr;
+  }
+}

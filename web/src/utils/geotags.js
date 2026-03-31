@@ -1,7 +1,7 @@
 import { apiRequest, handleApiResponse } from './client';
 
-export async function getThemesRequest() {
-  const response = await apiRequest('/theme/all', {
+export async function getAchievementsRequest() {
+  const response = await apiRequest('/achievment/all', {
     method: 'GET',
   });
 
