@@ -1,11 +1,32 @@
-export function getGeotagByIdRequest() {
-  throw new Error('getGeotagByIdRequest is not implemented yet');
+import { apiRequest, handleApiResponse } from './client';
+import { buildFormData } from '../utils/formData';
+
+export async function getGeotagByIdRequest(geotagId) {
+  const response = await apiRequest(`/geotag/show/${geotagId}`, {
+    method: 'GET',
+  });
+
+  return handleApiResponse(response);
 }
 
-export function createGeotagRequest() {
-  throw new Error('createGeotagRequest is not implemented yet');
+export async function createGeotagRequest(geotagData) {
+  const formData = buildFormData(geotagData);
+
+  const response = await apiRequest('/geotag/create', {
+    method: 'POST',
+    body: formData,
+  });
+
+  return handleApiResponse(response);
 }
 
-export function updateGeotagRequest() {
-  throw new Error('updateGeotagRequest is not implemented yet');
+export async function updateGeotagRequest(geotagId, geotagData) {
+  const formData = buildFormData(geotagData);
+
+  const response = await apiRequest(`/geotag/update/${geotagId}`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  return handleApiResponse(response);
 }

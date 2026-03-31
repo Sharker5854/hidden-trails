@@ -2,9 +2,15 @@ import { useEffect, useMemo, useState } from 'react';
 import { mockPlaces } from '../data/mockPlaces';
 import PlaceCard from '../components/place/PlaceCard';
 import { useProfile } from '../hooks/useProfile';
+import { useAchievements } from '../hooks/useAchievements';
 
 export default function ProfilePage({ onOpenDetails, onOpenOnMap, onProfileLoaded }) {
   const { profile, isLoading, error, loadProfile, updateProfile } = useProfile();
+  const {
+    achievements,
+    isLoading: achievementsLoading,
+    loadAchievements,
+  } = useAchievements();
 
   const [isEditing, setIsEditing] = useState(false);
   const [avatarFile, setAvatarFile] = useState(null);
@@ -28,7 +34,8 @@ export default function ProfilePage({ onOpenDetails, onOpenOnMap, onProfileLoade
     };
 
     fetchProfile();
-  }, [loadProfile, onProfileLoaded]);
+    loadAchievements();
+  }, [loadProfile, loadAchievements, onProfileLoaded]);
 
   useEffect(() => {
     if (!profile) return;
@@ -270,6 +277,39 @@ export default function ProfilePage({ onOpenDetails, onOpenOnMap, onProfileLoade
             </form>
           )}
         </div>
+      </section>
+
+      <section className="profile-achievements">
+        <div className="profile-section-header">
+          <h2 className="section-title">Достижения</h2>
+          {achievementsLoading ? (
+            <span className="profile-section-header__hint">Загрузка...</span>
+          ) : null}
+        </div>
+
+        {achievements.length > 0 ? (
+          <div className="achievements-grid">
+            {achievements.map((achievement) => (
+              <article key={achievement.id || achievement.title} className="achievement-card">
+                {achievement.picture_url ? (
+                  <img
+                    src={achievement.picture_url}
+                    alt={achievement.title}
+                    className="achievement-card__image"
+                  />
+                ) : (
+                  <div className="achievement-card__placeholder">🏆</div>
+                )}
+
+                <div className="achievement-card__content">
+                  <h3>{achievement.title}</h3>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="profile-section-header__hint">Достижений пока нет</p>
+        )}
       </section>
 
       <section>

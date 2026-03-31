@@ -8,6 +8,8 @@ import ProfilePage from './pages/ProfilePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import PlaceDetailsPage from './pages/PlaceDetailsPage';
+import CreateGeotagPage from './pages/CreateGeotagPage';
+import EditGeotagPage from './pages/EditGeotagPage';
 import { useAuth } from './hooks/useAuth';
 
 export default function App() {
@@ -76,6 +78,15 @@ export default function App() {
     setCurrentPage('map');
   };
 
+  const handleOpenCreateGeotag = () => {
+    setCurrentPage('create-geotag');
+  };
+
+  const handleOpenEditGeotag = (place) => {
+    setSelectedPlace(place);
+    setCurrentPage('edit-geotag');
+  };
+
   const renderPage = () => {
     if (isLoading && !isAuthorized) {
       return (
@@ -125,11 +136,41 @@ export default function App() {
           <PlaceDetailsPage
             place={selectedPlace}
             onOpenOnMap={handleOpenOnMap}
+            onEditPlace={handleOpenEditGeotag}
           />
         ) : (
           <FeedPage
             onOpenDetails={handleOpenDetails}
             onOpenOnMap={handleOpenOnMap}
+            onOpenCreateGeotag={handleOpenCreateGeotag}
+          />
+        );
+      case 'create-geotag':
+        return (
+          <CreateGeotagPage
+            onCreated={(createdGeotag) => {
+              setSelectedPlace(createdGeotag);
+              setCurrentPage('place-details');
+            }}
+            onCancel={() => setCurrentPage('feed')}
+          />
+        );
+      case 'edit-geotag':
+        return selectedPlace ? (
+          <EditGeotagPage
+            geotagId={selectedPlace.id}
+            initialGeotag={selectedPlace}
+            onUpdated={(updatedGeotag) => {
+              setSelectedPlace(updatedGeotag);
+              setCurrentPage('place-details');
+            }}
+            onCancel={() => setCurrentPage('place-details')}
+          />
+        ) : (
+          <FeedPage
+            onOpenDetails={handleOpenDetails}
+            onOpenOnMap={handleOpenOnMap}
+            onOpenCreateGeotag={handleOpenCreateGeotag}
           />
         );
       case 'feed':
@@ -138,6 +179,7 @@ export default function App() {
           <FeedPage
             onOpenDetails={handleOpenDetails}
             onOpenOnMap={handleOpenOnMap}
+            onOpenCreateGeotag={handleOpenCreateGeotag}
           />
         );
     }
