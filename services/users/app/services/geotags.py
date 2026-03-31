@@ -1,8 +1,11 @@
 import datetime
+from fastapi import HTTPException, status
 from typing import Optional, List
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, case, desc, func
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.models.users import User
+from app.models.themes import Theme
 from app.models.geotags import Geotag
 from app.models.geotag_themes import geotag_themes
 from app.schemas.geotags import GeotagCreateForm, GeotagPublic, GeotagUpdateForm
@@ -135,4 +138,130 @@ class GeotagsService:
         await self.db.commit()
         await self.db.refresh(geotag)
         return geotag
+    
 
+
+    async def save_geotag(
+        self,
+        user_id: int,
+        geotag_id: int,
+    ) -> dict:
+        
+        stmt = select(User).options(
+            selectinload(User.saved_geotags)
+        ).where(User.id == user_id)
+        
+        result = await self.db.execute(stmt)
+        user = result.scalar_one_or_none()
+        
+        if not user:
+            raise HTTPException(status_code=404, detail=f"User {user_id} not found.")
+        
+        stmt = select(Geotag).where(Geotag.id == geotag_id)
+        result = await self.db.execute(stmt)
+        geotag = result.scalar_one_or_none()
+        
+        if not geotag:
+            raise HTTPException(status_code=404, detail=f"Geotag {geotag_id} not found.")
+        
+        if geotag in user.saved_geotags:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Geotag already saved"
+            )
+        
+        user.saved_geotags.append(geotag)
+        await self.db.commit()
+        await self.db.refresh(user)
+        
+        return {
+            "status": "saved",
+            "geotag_id": geotag_id,
+            "user_id": user_id,
+        }
+    
+
+    async def unsave_geotag(
+        self,
+        user_id: int,
+        geotag_id: int,
+    ) -> dict:
+        
+        stmt = select(User).options(
+            selectinload(User.saved_geotags)
+        ).where(User.id == user_id)
+        
+        result = await self.db.execute(stmt)
+        user = result.scalar_one_or_none()
+        
+        if not user:
+            raise HTTPException(status_code=404, detail=f"User {user_id} not found.")
+        
+        stmt = select(Geotag).where(Geotag.id == geotag_id)
+        result = await self.db.execute(stmt)
+        geotag = result.scalar_one_or_none()
+        
+        if not geotag:
+            raise HTTPException(status_code=404, detail=f"Geotag {geotag_id} not found.")
+        
+        if geotag not in user.saved_geotags:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Geotag not in saved"
+            )
+        
+        user.saved_geotags.remove(geotag)
+        await self.db.commit()
+        
+        return {
+            "status": "unsaved",
+            "geotag_id": geotag_id,
+            "user_id": user_id,
+        }
+
+
+
+
+    async def geotags_feed(
+        self,
+        user_id: int,
+        limit: int = 20,
+    ) -> List[Geotag]:
+        
+        user_stmt = select(User).options(
+            selectinload(User.following),
+            selectinload(User.themes)
+        ).where(User.id == user_id)
+        
+        result = await self.db.execute(user_stmt)
+        user = result.scalar_one_or_none()
+        
+        following_ids = [u.id for u in getattr(user, 'following', [])]
+        theme_ids = [t.id for t in getattr(user, 'themes', [])]
+        
+        main_priority = case(
+            (Geotag.author_id.in_(following_ids), 3), # приоритетней всего геометки тех, на кого подписан
+            (Geotag.themes.any(Theme.id.in_(theme_ids)), 2), # затем те геометки, тематика которых совпадает с интересами
+            else_=1  # остальные отсортированные по времени публикации и кол-ву лайков
+        )
+        
+        theme_bonus = case(
+            # Если геотег от подписки И совпадает с темами — бонус к приоритетности
+            (and_(Geotag.author_id.in_(following_ids), 
+                Geotag.themes.any(Theme.id.in_(theme_ids))), 1),
+            else_=0
+        )
+        
+        stmt = select(Geotag).options(
+            selectinload(Geotag.author),
+            selectinload(Geotag.themes),
+            selectinload(Geotag.comments)
+        ).order_by(
+            desc(main_priority * 1000000),
+            desc(theme_bonus * 10000),
+            Geotag.created_at.desc(),
+            desc(Geotag.likes_count),
+        ).limit(limit)
+        
+        result = await self.db.execute(stmt)
+        return result.scalars().all()

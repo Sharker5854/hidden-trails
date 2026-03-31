@@ -2,21 +2,25 @@ import uuid
 from typing import Optional, List, Annotated
 from pathlib import Path
 from fastapi import APIRouter, Request, Depends, Form, HTTPException, UploadFile, File
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.encoders import jsonable_encoder
 from fastapi.templating import Jinja2Templates
 from transliterate import translit
 from app.core.config import settings
 from app.models import User
+from app.schemas.geotags import GeotagPublic
 from app.schemas.geotags import GeotagCreateForm, GeotagUpdateForm
 from app.services.themes import ThemesService
 from app.services.geotags import GeotagsService
 from app.api.deps import get_current_user, get_themes_service, get_geotags_service
 
 
-# Эндпоинт сохранения геометки других пользователей
+
+# Эндпоинт сохранения геометки других пользователей +++
 # Эндпоинты под создание комментов и сабкомментов
 # Эндпоинт под лайки
-# Лента
+# Эндпоинт под добавление интересов пользователя (в профиле)
+# Лента +++
 # Подписка на пользователя
 # Страница с картой
 # Админка
@@ -251,3 +255,61 @@ async def update_geotag(
         )
     
     return RedirectResponse(f"/geotag/show/{geotag_id}", status_code=302)
+
+
+
+@router.post("/save/{geotag_id}")
+async def save_geotag(
+    geotag_id: int,
+    geotags_svc: Annotated[GeotagsService, Depends(get_geotags_service)],
+    user: User = Depends(get_current_user),
+):
+    
+    result = await geotags_svc.save_geotag(
+        user_id=user.id,
+        geotag_id=geotag_id
+    )
+    
+    return JSONResponse(status_code=200, content=result)
+
+
+@router.post("/unsave/{geotag_id}")
+async def unsave_geotag(
+    geotag_id: int,
+    geotags_svc: Annotated[GeotagsService, Depends(get_geotags_service)],
+    user: User = Depends(get_current_user),
+):
+    
+    result = await geotags_svc.unsave_geotag(
+        user_id=user.id,
+        geotag_id=geotag_id
+    )
+    
+    return JSONResponse(status_code=200, content=result)
+
+
+
+@router.get("/feed")
+async def get_feed(
+    geotags_svc: Annotated[GeotagsService, Depends(get_geotags_service)],
+    limit: int = 10,
+    user: User = Depends(get_current_user),
+):
+    
+    feed = await geotags_svc.geotags_feed(
+        user_id=user.id,
+        limit=limit,
+    )
+    
+    public_geotags: List[GeotagPublic] = jsonable_encoder([
+        GeotagPublic.from_orm(gt)
+        for gt in feed
+    ])
+
+    return JSONResponse(
+        status_code=200, 
+        content={
+            "geotags": public_geotags,
+            "total": len(public_geotags),
+        }
+    )
