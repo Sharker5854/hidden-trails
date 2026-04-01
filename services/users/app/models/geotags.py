@@ -5,6 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
 from .geotag_themes import geotag_themes
 from .user_saved_geotags import user_saved_geotags
+from .user_likes import user_likes
 from datetime import datetime
 
 
@@ -90,6 +91,12 @@ class Geotag(Base):
     
     likes_count: Mapped[int] = mapped_column(
         Integer, default=0
+    )
+
+    likers: Mapped[List["User"]] = relationship(
+        "User",
+        secondary=user_likes,
+        back_populates="liked_geotags"
     )
     
     __table_args__ = (
