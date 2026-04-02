@@ -1,6 +1,7 @@
 import uuid
 from typing import Optional, List, Annotated
 from pathlib import Path
+from fastapi import Path as QueryPath
 from fastapi import APIRouter, Request, Depends, Form, HTTPException, UploadFile, File
 from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.encoders import jsonable_encoder
@@ -18,7 +19,7 @@ from app.api.deps import get_current_user, get_themes_service, get_geotags_servi
 
 # Эндпоинт сохранения геометки других пользователей +++
 # Эндпоинты под создание комментов и сабкомментов
-# Эндпоинт под лайки
+# Эндпоинт под лайки +++
 # Эндпоинт под добавление интересов пользователя (в профиле)
 # Лента +++
 # !!! Поправить ленту, чтобы свои статьи не вываливались сверху, даже если по интересам идеально совпадают
@@ -296,7 +297,6 @@ async def get_feed(
     limit: int = 10,
     user: User = Depends(get_current_user),
 ):
-    
     feed = await geotags_svc.geotags_feed(
         user_id=user.id,
         limit=limit,
@@ -314,3 +314,23 @@ async def get_feed(
             "total": len(public_geotags),
         }
     )
+
+
+
+@router.post("/like/{geotag_id}")
+async def like_geotag(
+    geotag_id: int = QueryPath(..., ge=1),
+    geotags_svc: GeotagsService = Depends(get_geotags_service),
+    user: User = Depends(get_current_user),
+):
+    result = await geotags_svc.like_geotag(user.id, geotag_id)
+    return JSONResponse(status_code=200, content=result)
+
+@router.post("/unlike/{geotag_id}")
+async def unlike_geotag(
+    geotag_id: int = QueryPath(..., ge=1),
+    geotags_svc: GeotagsService = Depends(get_geotags_service),
+    user: User = Depends(get_current_user),
+):
+    result = await geotags_svc.unlike_geotag(user.id, geotag_id)
+    return JSONResponse(status_code=200, content=result)

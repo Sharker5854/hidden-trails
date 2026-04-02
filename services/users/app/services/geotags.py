@@ -1,6 +1,6 @@
 import datetime
 from fastapi import HTTPException, status
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from sqlalchemy import select, and_, case, desc, func
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -251,17 +251,110 @@ class GeotagsService:
                 Geotag.themes.any(Theme.id.in_(theme_ids))), 1),
             else_=0
         )
+
+        # минус приоритет, если статья написана самим текущим пользователем
+        own_articles_penalty = case(
+            (Geotag.author_id == user_id, -1_000_000),
+            else_=0
+        )
         
         stmt = select(Geotag).options(
             selectinload(Geotag.author),
             selectinload(Geotag.themes),
             selectinload(Geotag.comments)
         ).order_by(
-            desc(main_priority * 1000000),
-            desc(theme_bonus * 10000),
+            desc((main_priority * 1_000_000) + (theme_bonus * 10_000) + own_articles_penalty),
             Geotag.created_at.desc(),
             desc(Geotag.likes_count),
         ).limit(limit)
         
         result = await self.db.execute(stmt)
         return result.scalars().all()
+    
+
+
+    async def like_geotag(
+        self,
+        user_id: int,
+        geotag_id: int
+    ) -> Dict[str, Any]:
+        
+        user_stmt = select(User).options(
+            selectinload(User.liked_geotags)
+        ).where(User.id == user_id)
+
+        result = await self.db.execute(user_stmt)
+        user = result.scalar_one_or_none()
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found.")
+        
+        geotag_stmt = select(Geotag).where(Geotag.id == geotag_id)
+        result = await self.db.execute(geotag_stmt)
+        geotag = result.scalar_one_or_none()
+        
+        if not geotag:
+            raise HTTPException(status_code=404, detail="Geotag not found.")
+        
+        if geotag in user.liked_geotags:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Already liked."
+            )
+        
+        user.liked_geotags.append(geotag)
+        geotag.likes_count += 1
+        
+        await self.db.commit()
+        await self.db.refresh(geotag)
+        
+        return {
+            "status": "liked",
+            "user_id": user_id,
+            "geotag_id": geotag_id,
+            "total_likes": geotag.likes_count,
+        }
+    
+
+
+    async def unlike_geotag(
+        self,
+        user_id: int,
+        geotag_id: int
+    ) -> Dict[str, Any]:
+        
+        user_stmt = select(User).options(
+            selectinload(User.liked_geotags)
+        ).where(User.id == user_id)
+
+        result = await self.db.execute(user_stmt)
+        user = result.scalar_one_or_none()
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found.")
+        
+        geotag_stmt = select(Geotag).where(Geotag.id == geotag_id)
+        result = await self.db.execute(geotag_stmt)
+        geotag = result.scalar_one_or_none()
+        
+        if not geotag:
+            raise HTTPException(status_code=404, detail="Geotag not found.")
+        
+        if geotag not in user.liked_geotags:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Already not liked."
+            )
+        
+        user.liked_geotags.remove(geotag)
+        geotag.likes_count -= 1
+        
+        await self.db.commit()
+        await self.db.refresh(geotag)
+        
+        return {
+            "status": "unliked",
+            "user_id": user_id,
+            "geotag_id": geotag_id,
+            "total_likes": geotag.likes_count,
+        }
