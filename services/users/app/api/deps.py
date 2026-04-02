@@ -1,6 +1,7 @@
-from typing import Annotated, AsyncGenerator
+from typing import Annotated, AsyncGenerator, List
 
 from fastapi import Depends, HTTPException, status, Request, Response
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from jose import jwt
 import httpx
@@ -9,6 +10,7 @@ from app.core.config import settings
 from app.services.auth import AuthService
 from app.services.users import UsersService
 from app.models.users import User
+from app.models.themes import Theme
 from app.services.achievments import AchievmentsService
 from app.services.themes import ThemesService
 from app.services.geotags import GeotagsService
@@ -129,3 +131,11 @@ def get_geotags_service(
     db: AsyncSession = Depends(get_db)
 ) -> GeotagsService:
     return GeotagsService(db)
+
+
+
+async def get_all_themes(db: AsyncSession = Depends(get_db)) -> List[Theme]:
+    """Получить все существующие темы."""
+    stmt = select(Theme).order_by(Theme.name)
+    result = await db.execute(stmt)
+    return result.scalars().all()

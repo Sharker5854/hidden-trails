@@ -1,9 +1,10 @@
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from app.models.users import User
+from app.models.themes import Theme
 from app.schemas.users import UserCreate, UserUpdateForm
 
 
@@ -12,17 +13,17 @@ class UsersService:
         self.db = db
 
     async def get_by_email(self, email: str) -> Optional[User]:
-        stmt = select(User).where(User.email == email)
+        stmt = select(User).options(selectinload(User.themes)).where(User.email == email)
         result = await self.db.execute(stmt)
         return result.scalars().first()
     
     async def get_by_nickname(self, nickname: str) -> Optional[User]:
-        stmt = select(User).where(User.nickname == nickname)
+        stmt = select(User).options(selectinload(User.themes)).where(User.nickname == nickname)
         result = await self.db.execute(stmt)
         return result.scalars().first()
 
     async def get_by_id(self, user_id: int) -> Optional[User]:
-        stmt = select(User).where(User.id == user_id)
+        stmt = select(User).options(selectinload(User.themes)).where(User.id == user_id)
         result = await self.db.execute(stmt)
         return result.scalars().first()
 
@@ -36,6 +37,7 @@ class UsersService:
         await self.db.refresh(user)
         return user
     
+
     async def update_user(
         self,
         user: User,
@@ -52,23 +54,31 @@ class UsersService:
             if await self.get_by_nickname(data["nickname"]):
                 raise ValueError("Nickname уже занят!")
 
-        user.email = data["email"]
-        user.nickname = data["nickname"]
-        user.phone = data.get("phone")
-        user.name = data.get("name")
-        user.surname = data.get("surname")
-        user.is_moder = data["is_moder"]
-        user.is_admin = data["is_admin"]
-        user.is_premium = data["is_premium"]
-        user.rating = data["rating"]
+        for field, value in data.items():
+            if field in ["email", "nickname", "phone", "name", "surname", "is_moder", "is_admin", "is_premium", "rating"]:
+                setattr(user, field, value)
 
         if avatar_url is not None:
             user.avatar_url = avatar_url
+
+        await self.sync_user_themes(user, form.theme_ids)
 
         await self.db.commit()
         await self.db.refresh(user)
         return user
     
+
+    async def sync_user_themes(self, user: User, theme_ids: List[int]):
+
+        themes_stmt = select(Theme).where(Theme.id.in_(theme_ids))
+        result = await self.db.execute(themes_stmt)
+        new_themes = result.scalars().all()
+        
+        user.themes.clear()
+        
+        user.themes.extend(new_themes)
+    
+
 
     async def follow_user(
         self, 

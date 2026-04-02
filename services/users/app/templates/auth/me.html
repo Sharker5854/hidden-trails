@@ -56,6 +56,21 @@
                 </div>
             </fieldset></p>
 
+
+            <fieldset>
+                <legend>Интересы (темы)</legend>
+                {% for theme in all_themes %}
+                        <input style="margin-left: 20px;"
+                            type="checkbox" 
+                            name="theme_ids" 
+                            id="theme_{{ theme.id }}" 
+                            value="{{ theme.id }}"
+                            {% if theme.id in current_user.theme_ids %}checked{% endif %}>
+                        <label for="theme_{{ theme.id }}">{{ theme.name }}</label>
+                {% endfor %}
+            </fieldset>
+
+
             <p><fieldset>
                 <legend>Roots</legend>
                 <div>

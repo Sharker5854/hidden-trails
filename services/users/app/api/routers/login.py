@@ -1,5 +1,5 @@
 import uuid
-from typing import Optional, Annotated
+from typing import Optional, Annotated, List
 from pathlib import Path
 from fastapi import APIRouter, Depends, Form, HTTPException, status, Request, Response, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
@@ -11,7 +11,7 @@ from sqlalchemy.sql import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from jose import jwt
 from app.core.config import settings
-from app.api.deps import get_db, get_current_user, get_auth_service, get_users_service
+from app.api.deps import get_db, get_current_user, get_auth_service, get_users_service, get_all_themes
 from app.models import User, Theme, Geotag, Comment, Achievment
 from app.services.auth import AuthService
 from app.services.users import UsersService
@@ -139,12 +139,15 @@ async def refresh(
 @router.get("/me")
 async def me_page(
     request: Request,
+    all_themes: List[Theme] = Depends(get_all_themes),
     current_user: User = Depends(get_current_user),
 ):
+    current_user.theme_ids = [t.id for t in current_user.themes]
     current_user = UserPublic.model_validate(current_user)
     return templates.TemplateResponse("auth/me.html", {
         "request": request, 
-        "current_user": current_user
+        "current_user": current_user,
+        "all_themes": all_themes
     })
 
 
@@ -158,6 +161,7 @@ async def me_post(
     phone: Optional[str] = Form(None),
     name: Optional[str] = Form(None),
     surname: Optional[str] = Form(None),
+    theme_ids: Optional[List[int]] = Form(default=[]),
     is_moder: bool = Form(False),
     is_admin: bool = Form(False),
     is_premium: bool = Form(False),
@@ -172,6 +176,7 @@ async def me_post(
         "phone": phone,
         "name": name,
         "surname": surname,
+        "theme_ids": theme_ids,
         "is_moder": is_moder,
         "is_admin": is_admin,
         "is_premium": is_premium,
@@ -187,6 +192,7 @@ async def me_post(
                 "request": request,
                 "current_user": current_user,
                 "error": f"Ошибка валидации: {e}",
+                "all_themes": await get_all_themes()
             },
             status_code=400,
         )
@@ -213,6 +219,7 @@ async def me_post(
                 "request": request,
                 "current_user": current_user,
                 "error": f"{e}",
+                "all_themes": await get_all_themes()
             },
             status_code=400,
         )

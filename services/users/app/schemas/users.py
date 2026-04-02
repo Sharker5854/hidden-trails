@@ -19,6 +19,8 @@ class UserUpdateForm(BaseModel):
     name: Optional[str] = None
     surname: Optional[str] = None
 
+    theme_ids: Optional[List[int]] = []
+
     is_moder: bool = False
     is_admin: bool = False
     is_premium: bool = False
@@ -66,6 +68,7 @@ class UserPublic(BaseModel):
     surname: Optional[str]
     nickname: str
     avatar_url: str
+    theme_ids: Optional[List[int]] = [] 
     is_moder: bool
     is_admin: bool
     is_premium: bool
