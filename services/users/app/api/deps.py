@@ -14,6 +14,7 @@ from app.models.themes import Theme
 from app.services.achievments import AchievmentsService
 from app.services.themes import ThemesService
 from app.services.geotags import GeotagsService
+from app.services.comments import CommentsService
 from ..db.session import AsyncSessionLocal
 
 
@@ -131,6 +132,13 @@ def get_geotags_service(
     db: AsyncSession = Depends(get_db)
 ) -> GeotagsService:
     return GeotagsService(db)
+
+
+
+async def get_comments_service(
+        db: AsyncSession = Depends(get_db)
+    ) -> CommentsService:
+    return CommentsService(db)
 
 
 

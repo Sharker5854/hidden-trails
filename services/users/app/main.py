@@ -6,6 +6,7 @@ from .api.routers.achievments import router as achievments_router
 from .api.routers.themes import router as themes_router
 from .api.routers.geotags import router as geotags_router
 from .api.routers.users import router as users_router
+from .api.routers.comments import router as comments_router
 from .db.session import engine
 from .models import *
 from .models.base import Base
@@ -28,5 +29,6 @@ app.include_router(users_router)
 app.include_router(achievments_router)
 app.include_router(themes_router)
 app.include_router(geotags_router)
+app.include_router(comments_router)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")

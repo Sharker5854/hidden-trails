@@ -9,6 +9,7 @@ from .user_themes import user_themes
 from .user_follows import user_follows
 from .user_likes import user_likes
 from .user_saved_geotags import user_saved_geotags
+from .comment_likes import comment_likes
 from .base import Base
 
 

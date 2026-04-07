@@ -6,6 +6,7 @@ from .user_achievments import user_achievments
 from .user_saved_geotags import user_saved_geotags
 from .user_themes import user_themes
 from .user_likes import user_likes
+from .comment_likes import comment_likes
 from datetime import datetime
 
 
@@ -86,6 +87,13 @@ class User(Base):
     liked_geotags: Mapped[List["Geotag"]] = relationship(
         "Geotag",
         secondary=user_likes,
+        back_populates="likers",
+        lazy="selectin"
+    )
+
+    liked_comments: Mapped[List["Comment"]] = relationship(
+        "Comment",
+        secondary=comment_likes,
         back_populates="likers",
         lazy="selectin"
     )

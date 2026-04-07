@@ -2,6 +2,7 @@ from typing import List, Optional
 from sqlalchemy import Integer, Text, ForeignKey, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
+from .comment_likes import comment_likes
 from datetime import datetime
 
 
@@ -45,6 +46,12 @@ class Comment(Base):
 
     likes_count: Mapped[int] = mapped_column(
         Integer, default=0
+    )
+
+    likers: Mapped[List["User"]] = relationship(
+        "User",
+        secondary=comment_likes,
+        back_populates="liked_comments"
     )
 
     parent_id: Mapped[Optional[int]] = mapped_column(
