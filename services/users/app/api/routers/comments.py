@@ -54,3 +54,25 @@ async def api_get_comments(
     comments = await comments_svc.get_comment_tree(geotag_id)
     result = {"comments": comments}
     return JSONResponse(status_code=200, content=jsonable_encoder(result))
+
+
+
+
+@router.post("/like/{comment_id}")
+async def like_comment(
+    comment_id: int,
+    user: User = Depends(get_current_user),
+    comments_svc: CommentsService = Depends(get_comments_service)
+):
+    result = await comments_svc.like_comment(user.id, comment_id)
+    return JSONResponse(status_code=200, content=jsonable_encoder(result))
+
+
+@router.post("/unlike/{comment_id}")
+async def unlike_comment(
+    comment_id: int,
+    user: User = Depends(get_current_user),
+    comments_svc: CommentsService = Depends(get_comments_service)
+):
+    result = await comments_svc.unlike_comment(user.id, comment_id)
+    return JSONResponse(status_code=200, content=jsonable_encoder(result))

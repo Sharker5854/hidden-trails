@@ -139,3 +139,84 @@ class CommentsService:
             }
             for c in root_comments
         ]
+    
+
+    async def like_comment(
+        self,
+        user_id: int,
+        comment_id: int
+    ) -> Dict[str, Any]:
+        
+        user_stmt = select(User).options(
+            selectinload(User.liked_comments)
+        ).where(User.id == user_id)
+        result = await self.db.execute(user_stmt)
+        user = result.scalar_one_or_none()
+        
+        if not user:
+            raise HTTPException(404, "User not found.")
+        
+        comment_stmt = select(Comment).options(
+            selectinload(Comment.likers)
+        ).where(Comment.id == comment_id)
+        result = await self.db.execute(comment_stmt)
+        comment = result.scalar_one_or_none()
+        
+        if not comment:
+            raise HTTPException(404, "Comment not found.")
+        
+        if comment in user.liked_comments:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Already liked."
+            )
+        
+        user.liked_comments.append(comment)
+        comment.likes_count += 1
+        
+        await self.db.commit()
+        await self.db.refresh(comment)
+        
+        return {
+            "status": "liked",
+            "user_id": user_id,
+            "comment_id": comment_id
+        }
+
+
+    async def unlike_comment(
+        self,
+        user_id: int,
+        comment_id: int
+    ) -> Dict[str, Any]:
+        
+        user_stmt = select(User).options(
+            selectinload(User.liked_comments)
+        ).where(User.id == user_id)
+        result = await self.db.execute(user_stmt)
+        user = result.scalar_one_or_none()
+        
+        if not user:
+            raise HTTPException(404, "User not found.")
+        
+        comment_stmt = select(Comment).where(Comment.id == comment_id)
+        result = await self.db.execute(comment_stmt)
+        comment = result.scalar_one_or_none()
+        
+        if not comment:
+            raise HTTPException(404, "Comment not found.")
+        
+        if comment not in user.liked_comments:
+            raise HTTPException(404, "Already not liked.")
+        
+        user.liked_comments.remove(comment)
+        comment.likes_count -= 1
+        
+        await self.db.commit()
+        await self.db.refresh(comment)
+        
+        return {
+            "status": "unliked",
+            "user_id": user_id,
+            "comment_id": comment_id
+        }
