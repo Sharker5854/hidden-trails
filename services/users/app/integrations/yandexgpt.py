@@ -1,8 +1,7 @@
-import pprint
-import json
 from fastapi import HTTPException
 from .utils import HttpxClient
 from app.core.config import settings
+
 
 
 class YandexGPT:
@@ -96,7 +95,6 @@ class YandexGPT:
         )
         if response.status_code != 200:
             failed_json = response.json()
-            pprint.pprint(failed_json)
             raise HTTPException(
                 status_code=int(failed_json["error"]["httpCode"]),
                 detail=failed_json["error"]["message"]

@@ -1,7 +1,8 @@
 import uuid
+import urllib
 from typing import Optional, Annotated, List
 from pathlib import Path
-from fastapi import APIRouter, Depends, Form, HTTPException, status, Request, Response, UploadFile, File
+from fastapi import APIRouter, Depends, Form, HTTPException, status, Request, Response, UploadFile, File, BackgroundTasks
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import EmailStr
@@ -235,6 +236,83 @@ async def logout(response: Response):
     resp.delete_cookie("access_token")
     resp.delete_cookie("refresh_token")
     return resp
+
+
+
+@router.get("/forgot-password")
+async def forgot_password_form(
+        request: Request
+    ):
+    """Форма 'Забыли пароль?'"""
+    return templates.TemplateResponse(
+        "auth/forgot-password.html",
+        {"request": request}
+    )
+
+
+@router.post("/forgot-password")
+async def forgot_password(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    email: str = Form(..., description="Email для сброса"),
+    auth_svc: AuthService = Depends(get_auth_service)
+):
+    """Запрос сброса пароля."""
+    result = await auth_svc.request_password_reset(email, background_tasks)
+
+
+    return templates.TemplateResponse(
+        "auth/forgot-password.html",
+        context={
+            "request": request, 
+            "message": result["message"], 
+            "success": True
+        },
+        status_code=303
+    )
+
+
+
+@router.get("/reset-password")
+async def reset_password_form(
+    request: Request,
+    token: Optional[str] = None
+):
+    """Форма сброса пароля."""
+    return templates.TemplateResponse(
+        "auth/reset-password.html",
+        {
+            "request": request,
+            "token": token
+        }
+    )
+
+
+@router.post("/reset-password")
+async def reset_password(
+    request: Request,
+    token: str = Form(...),
+    new_password: str = Form(...),
+    auth_svc: AuthService = Depends(get_auth_service)
+):
+    """Сброс пароля по ссылке."""
+    try:
+        result = await auth_svc.reset_password(token, new_password)
+        return RedirectResponse(
+            "/auth/login",
+            status_code=303
+        )
+    except HTTPException:
+        return templates.TemplateResponse(
+            "auth/reset-password.html",
+            context={
+                "request": request,
+                "token": token,
+                "message": "Ошибка!",
+                "status": False
+            },
+            status_code=303
+        )
 
 
 

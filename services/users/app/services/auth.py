@@ -1,13 +1,15 @@
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Optional, Dict, Any
 
 from jose import jwt, JWTError
 from passlib.context import CryptContext
+from fastapi import BackgroundTasks, HTTPException
 
 from app.core.config import settings
 from app.services.users import UsersService
 from app.schemas.users import UserPublic, UserCreate
 from app.schemas.auth import TokenPayload
+from app.integrations.resend import Resend
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -15,7 +17,10 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class AuthService:
     def __init__(self, db):
+        self.db = db
         self.users_svc = UsersService(db)
+        self.resend_client = Resend()
+
 
     def hash_password(self, password: str) -> str:
         return pwd_context.hash(password)
@@ -68,3 +73,64 @@ class AuthService:
             )
         )
         return UserPublic.model_validate(user)
+    
+
+
+    def create_reset_token(self, email: str) -> str:
+        """Создать токен сброса пароля."""
+        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.reset_token_expire_minutes)
+        payload = {"sub": email, "exp": expire, "iat": datetime.now(timezone.utc), "type": "reset"}
+        return jwt.encode(payload, settings.reset_token_secret, algorithm=settings.algorithm)
+    
+    async def verify_reset_token(self, token: str) -> Optional[str]:
+        """Проверить токен --> email."""
+        try:
+            payload = jwt.decode(token, settings.reset_token_secret, algorithms=[settings.algorithm])
+            email: str = payload.get("sub")
+            if email is None:
+                return None
+            return email
+        except JWTError:
+            return None
+
+
+    async def request_password_reset(self, email: str, background_tasks: BackgroundTasks) -> Dict[str, Any]:
+        """Запрос сброса пароля."""
+        user = await self.users_svc.get_by_email(email)
+        
+        if not user:
+            return {"message": "Если email существует, ссылка отправлена."}
+        
+        token = self.create_reset_token(email)
+        reset_url = f"{settings.app_host}/auth/reset-password?token={token}"
+        
+        background_tasks.add_task(
+            self.resend_client.send_reset_password_email, 
+            email, 
+            reset_url, 
+            user.nickname
+        )
+        
+        return {"message": "Ссылка для сброса отправлена на email."}
+    
+
+    async def reset_password(
+        self,
+        token: str,
+        new_password: str
+    ) -> Dict[str, Any]:
+        """Сброс пароля по токену."""
+        email = await self.verify_reset_token(token)
+        if not email:
+            raise HTTPException(400, "Invalid or expired token.")
+        
+        user = await self.users_svc.get_by_email(email)
+        
+        if not user:
+            raise HTTPException(404, "User not found.")
+        
+        user.hashed_password = self.hash_password(new_password)
+        
+        await self.db.commit()
+        
+        return {"message": "Пароль успешно сброшен."}

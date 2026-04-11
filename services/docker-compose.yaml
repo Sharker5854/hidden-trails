@@ -4,9 +4,6 @@ services:
   users:
     build: users/.
     env_file: .env
-    environment:
-      - YANDEX_CLOUD_API_KEY
-      - YANDEX_CLOUD_FOLDER_ID
     ports:
       - "8000:8000"
     volumes:

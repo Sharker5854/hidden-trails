@@ -19,9 +19,14 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int
     refresh_token_expire_days: int
 
-    # Integrations
-    yandex_cloud_api_key: str = os.getenv("YANDEX_CLOUD_API_KEY")
-    yandex_cloud_folder_id: str = os.getenv("YANDEX_CLOUD_FOLDER_ID")
+    # Integrations | Yandex
+    yandex_cloud_api_key: str
+    yandex_cloud_folder_id: str
+
+    # Integrations | Resend
+    resend_api_key: str
+    reset_token_secret: str
+    reset_token_expire_minutes: int
 
     
     model_config = SettingsConfigDict(
