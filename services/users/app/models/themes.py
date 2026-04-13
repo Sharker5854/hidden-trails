@@ -23,6 +23,12 @@ class Theme(Base):
         back_populates="themes"
     )
 
+    routes: Mapped[list["Route"]] = relationship(
+        "Route",
+        secondary="route_themes",
+        back_populates="themes"
+    )
+
     users: Mapped[List["User"]] = relationship(
         "User",
         secondary=user_themes,

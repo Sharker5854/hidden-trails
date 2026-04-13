@@ -77,6 +77,10 @@ class User(Base):
         cascade="all, delete-orphan"
     )
 
+    routes: Mapped[list["Route"]] = relationship(
+        back_populates="author"
+    )
+
     saved_geotags: Mapped[List["Geotag"]] = relationship(
         "Geotag",
         secondary=user_saved_geotags,

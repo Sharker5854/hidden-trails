@@ -59,6 +59,12 @@ class Geotag(Base):
         back_populates="geotags"
     )
 
+    routes: Mapped[list["Route"]] = relationship(
+        "Route",
+        secondary="route_geotags",
+        back_populates="geotags"
+    )
+
 
     comments: Mapped[List["Comment"]] = relationship(
         "Comment", 
