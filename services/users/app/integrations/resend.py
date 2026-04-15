@@ -16,8 +16,6 @@ class Resend:
         reset_url: str,
         user_nickname: str
     ) -> Dict[str, Any]:
-        
-        print("AAAAAAAAAAA", reset_url)
 
         email_html = f"""
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     reset_token_secret: str
     reset_token_expire_minutes: int
 
+    # Integrations | Geoapify
+    geoapify_api_key: str
+
     
     model_config = SettingsConfigDict(
         env_file=".env",
