@@ -35,9 +35,9 @@ class Geoapify:
 
         route_json = response.json()
 
-        if response.status_code != 200:
+        if response.status_code != 200 or response.json().get("statusCode") == 400:
             raise HTTPException(
-                status_code=response.status_code,
+                status_code=int(response.json()["statusCode"]),
                 detail=route_json
             )
         

@@ -6,7 +6,7 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from .geotags import GeotagsService
 from app.integrations.geoapify import Geoapify
-from app.schemas.routes import RouteResponse
+from app.schemas.routes import RouteResponse, AvailableModesResponse
 
 
 class RoutesService:
@@ -27,6 +27,31 @@ class RoutesService:
         response_data = RouteResponse.model_validate(route_data)
 
         return response_data
+    
+
+    async def get_available_modes(
+        self,
+        geotag_ids: List[int],
+    ) -> dict:
+        try:
+            full_route_data = await self.calculate_route(geotag_ids, "drive")
+        except HTTPException as e:
+            raise e
+        
+        result = {
+            "available_modes" : ["drive"],
+            "distance_km": full_route_data.distance_km
+        }
+
+        if full_route_data.distance_km < 300:
+            result["available_modes"].append("bicycle")
+            if full_route_data.distance_km < 100:
+                result["available_modes"].append("walk")
+
+        response_data = AvailableModesResponse.model_validate(result)
+
+        return response_data
+        
 
 
 

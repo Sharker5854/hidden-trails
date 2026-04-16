@@ -1,7 +1,6 @@
-from typing import Annotated, Optional
-from fastapi import APIRouter, Request, Depends, Body, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException
 from ..deps import get_current_premium_user, get_routes_service
-from app.schemas.routes import RouteRequest, RouteResponse
+from app.schemas.routes import RouteRequest, RouteResponse, AvailableModesResponse
 from app.services.routes import RoutesService
 from app.models.users import User
 
@@ -38,3 +37,27 @@ async def build_route(
     )
 
     return route_data
+
+
+
+@router.get("/available-modes", response_model=AvailableModesResponse)
+async def check_available_modes(
+    geotag_ids: List[int] = Query(..., description="ID геотэгов", min_items=2),
+    routes_svc: RoutesService = Depends(get_routes_service),
+    premium_user: User = Depends(get_current_premium_user)
+):
+    """
+    Request body:
+    - geotag_ids: ID геотэгов [1, 2, 3, ...]
+
+    Response body:
+    - available_modes: drive | walk (если не более 100км !!!) | bicycle (если не более 300км !!!)
+    """
+    if len(geotag_ids) < 2:
+        raise HTTPException(status_code=400, detail="Pass at least two geotags to check route distance.")
+    
+    result = await routes_svc.get_available_modes(
+        geotag_ids=geotag_ids
+    )
+
+    return result

@@ -19,3 +19,11 @@ class RouteResponse(BaseModel):
     distance_km: float
     duration_min: int
     mode: RouteMode
+
+
+class AvailableModesRequest(BaseModel):
+    geotag_ids: List[int]
+
+class AvailableModesResponse(BaseModel):
+    available_modes: List[RouteMode]
+    distance_km: float
