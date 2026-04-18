@@ -77,6 +77,14 @@ class UserMiniPublic(BaseModel):
         from_attributes = True
 
 
+class UsersListPublic(BaseModel):
+    users: List[UserMiniPublic] = []
+    page: int
+    page_size: int
+    total: int
+    total_pages: int
+
+
 class PublicUserProfile(BaseModel):
     id: int
     nickname: str

@@ -9,7 +9,7 @@ from app.models.geotags import Geotag
 from app.models.comments import Comment
 from app.models.user_achievments import user_achievments
 from app.schemas.geotags import GeotagPublic
-from app.schemas.users import PublicUserProfile, UserCreate, UserMiniPublic, UserUpdateForm
+from app.schemas.users import PublicUserProfile, UserCreate, UserMiniPublic, UserUpdateForm, UsersListPublic
 
 
 VIEW_SCORE = 1
@@ -55,7 +55,46 @@ class UsersService:
         )
         result = await self.db.execute(stmt)
         users = result.scalars().all()
+        for user in users:
+            await self.recalculate_user_rating(user)
         return [UserMiniPublic.model_validate(user) for user in users]
+
+    async def get_top_users(self, limit: int = 7) -> List[UserMiniPublic]:
+        stmt = select(User)
+        result = await self.db.execute(stmt)
+        users = result.scalars().all()
+
+        for user in users:
+            await self.recalculate_user_rating(user)
+
+        top_users = sorted(
+            users,
+            key=lambda item: (item.rating, item.register_at),
+            reverse=True,
+        )[:limit]
+        return [UserMiniPublic.model_validate(user) for user in top_users]
+
+    async def list_users(self, page: int = 1, page_size: int = 10) -> UsersListPublic:
+        stmt = select(User).order_by(User.nickname)
+        result = await self.db.execute(stmt)
+        users = result.scalars().all()
+
+        for user in users:
+            await self.recalculate_user_rating(user)
+
+        total = len(users)
+        total_pages = max(1, (total + page_size - 1) // page_size)
+        current_page = min(max(page, 1), total_pages)
+        start = (current_page - 1) * page_size
+        page_users = users[start:start + page_size]
+
+        return UsersListPublic(
+            users=[UserMiniPublic.model_validate(user) for user in page_users],
+            page=current_page,
+            page_size=page_size,
+            total=total,
+            total_pages=total_pages,
+        )
 
     async def get_public_profile(
         self,

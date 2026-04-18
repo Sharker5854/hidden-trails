@@ -28,6 +28,30 @@ async def search_users(
     )
 
 
+@router.get("/top")
+async def get_top_users(
+    limit: int = Query(7, ge=1, le=20),
+    user: User = Depends(get_current_user),
+    users_svc: UsersService = Depends(get_users_service),
+):
+    users = await users_svc.get_top_users(limit=limit)
+    return JSONResponse(
+        status_code=200,
+        content={"users": [item.model_dump(mode="json") for item in users]},
+    )
+
+
+@router.get("/list")
+async def list_users(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=30),
+    user: User = Depends(get_current_user),
+    users_svc: UsersService = Depends(get_users_service),
+):
+    users_page = await users_svc.list_users(page=page, page_size=page_size)
+    return JSONResponse(status_code=200, content=users_page.model_dump(mode="json"))
+
+
 @router.get("/{target_id}")
 async def get_user_profile(
     target_id: int = Path(..., ge=1),

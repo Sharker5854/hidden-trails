@@ -12,6 +12,18 @@ export function normalizeUserMini(user) {
   };
 }
 
+export function normalizeUsersPage(data) {
+  return {
+    users: Array.isArray(data?.users)
+      ? data.users.map(normalizeUserMini).filter(Boolean)
+      : [],
+    page: data?.page ?? 1,
+    pageSize: data?.page_size ?? data?.pageSize ?? 10,
+    total: data?.total ?? 0,
+    totalPages: data?.total_pages ?? data?.totalPages ?? 1,
+  };
+}
+
 export function normalizeUserProfile(profile) {
   if (!profile) return null;
 

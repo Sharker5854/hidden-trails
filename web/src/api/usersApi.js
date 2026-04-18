@@ -9,6 +9,27 @@ export async function searchUsersRequest(nickname) {
   return handleApiResponse(response);
 }
 
+export async function getTopUsersRequest(limit = 7) {
+  const params = new URLSearchParams({ limit: String(limit) });
+  const response = await apiRequest(`/user/top?${params.toString()}`, {
+    method: 'GET',
+  });
+
+  return handleApiResponse(response);
+}
+
+export async function getUsersPageRequest({ page = 1, pageSize = 10 } = {}) {
+  const params = new URLSearchParams({
+    page: String(page),
+    page_size: String(pageSize),
+  });
+  const response = await apiRequest(`/user/list?${params.toString()}`, {
+    method: 'GET',
+  });
+
+  return handleApiResponse(response);
+}
+
 export async function getUserProfileRequest(userId) {
   const response = await apiRequest(`/user/${userId}`, {
     method: 'GET',
