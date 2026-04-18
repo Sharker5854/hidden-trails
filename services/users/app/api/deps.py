@@ -120,7 +120,18 @@ async def get_current_premium_user(
     if not current_user.is_premium:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Need to be premium user to access routing feature."
+            detail="Need to be premium user to access this feature."
+        )
+    return current_user
+
+
+async def get_current_moder_user(
+    current_user: User = Depends(get_current_user)
+) -> User:
+    if not current_user.is_moder:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Need to be moderator to access this feature."
         )
     return current_user
 

@@ -1,5 +1,5 @@
 from typing import Optional, List
-from sqlalchemy import String, Integer, DateTime, Text, ForeignKey, Numeric
+from sqlalchemy import String, Integer, DateTime, Text, ForeignKey, Numeric, Boolean
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
@@ -72,6 +72,15 @@ class Geotag(Base):
         cascade="all, delete-orphan"
     )
 
+
+    is_moderated: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=True
+    )
+
+    moderator_comment: Mapped[Optional[str]] = mapped_column(
+        Text,
+        nullable=True
+    )
 
 
     latitude: Mapped[float] = mapped_column(

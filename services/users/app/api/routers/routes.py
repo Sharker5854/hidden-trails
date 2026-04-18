@@ -1,3 +1,4 @@
+from typing import List
 from fastapi import APIRouter, Depends, Query, HTTPException
 from ..deps import get_current_premium_user, get_routes_service
 from app.schemas.routes import RouteRequest, RouteResponse, AvailableModesResponse
@@ -7,10 +8,6 @@ from app.models.users import User
 
 
 router = APIRouter(prefix="/route", tags=["routes"])
-
-
-from fastapi import APIRouter, Depends, Body
-from typing import List
 
 
 
