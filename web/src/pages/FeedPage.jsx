@@ -1,7 +1,9 @@
 import PlaceCard from '../components/place/PlaceCard';
-import { mockPlaces } from '../data/mockPlaces';
 
 export default function FeedPage({
+  places = [],
+  isLoading,
+  error,
   onOpenDetails,
   onOpenOnMap,
   onOpenCreateGeotag,
@@ -19,16 +21,34 @@ export default function FeedPage({
         </button>
       </section>
 
-      <section className="feed-grid">
-        {mockPlaces.map((place) => (
-          <PlaceCard
-            key={place.id}
-            place={place}
-            onOpenDetails={onOpenDetails}
-            onOpenOnMap={onOpenOnMap}
-          />
-        ))}
-      </section>
+      {error ? <p className="auth-form__error">{error}</p> : null}
+
+      {isLoading && places.length === 0 ? (
+        <p className="page-state">Загружаем рекомендации...</p>
+      ) : null}
+
+      {!isLoading && places.length === 0 ? (
+        <section className="empty-state">
+          <h2>Пока нет карточек</h2>
+          <p>Создай первое место, и оно появится здесь и на карте.</p>
+          <button className="primary-button" onClick={onOpenCreateGeotag}>
+            Добавить место
+          </button>
+        </section>
+      ) : null}
+
+      {places.length > 0 ? (
+        <section className="feed-grid">
+          {places.map((place) => (
+            <PlaceCard
+              key={place.id}
+              place={place}
+              onOpenDetails={onOpenDetails}
+              onOpenOnMap={onOpenOnMap}
+            />
+          ))}
+        </section>
+      ) : null}
     </main>
   );
 }

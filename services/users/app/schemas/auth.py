@@ -36,3 +36,8 @@ class AuthResponse(BaseModel):
     access_token: str
     refresh_token: str
     user: UserPublic
+
+
+class SessionResponse(BaseModel):
+    user: Optional[UserPublic] = None
+    can_refresh: bool = False

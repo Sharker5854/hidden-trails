@@ -2,9 +2,10 @@ from typing import Optional, Dict, Any, List
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from app.models.users import User
 from app.models.themes import Theme
+from app.models.geotags import Geotag
 from app.schemas.users import UserCreate, UserUpdateForm
 
 
@@ -15,17 +16,46 @@ class UsersService:
     async def get_by_email(self, email: str) -> Optional[User]:
         stmt = select(User).options(selectinload(User.themes)).where(User.email == email)
         result = await self.db.execute(stmt)
-        return result.scalars().first()
+        user = result.scalars().first()
+        if user:
+            await self.recalculate_user_rating(user)
+        return user
     
     async def get_by_nickname(self, nickname: str) -> Optional[User]:
         stmt = select(User).options(selectinload(User.themes)).where(User.nickname == nickname)
         result = await self.db.execute(stmt)
-        return result.scalars().first()
+        user = result.scalars().first()
+        if user:
+            await self.recalculate_user_rating(user)
+        return user
 
     async def get_by_id(self, user_id: int) -> Optional[User]:
         stmt = select(User).options(selectinload(User.themes)).where(User.id == user_id)
         result = await self.db.execute(stmt)
-        return result.scalars().first()
+        user = result.scalars().first()
+        if user:
+            await self.recalculate_user_rating(user)
+        return user
+
+
+    async def recalculate_user_rating(self, user: User | int) -> int:
+        user_id = user if isinstance(user, int) else user.id
+        stmt = select(
+            func.coalesce(func.sum(Geotag.likes_count + Geotag.views_count), 0)
+        ).where(
+            Geotag.author_id == user_id
+        )
+        result = await self.db.execute(stmt)
+        rating = int(result.scalar_one() or 0)
+
+        target_user = user
+        if isinstance(user, int):
+            target_user = await self.db.get(User, user_id)
+
+        if target_user:
+            target_user.rating = rating
+
+        return rating
 
 
     async def create_user(self, data: UserCreate) -> User:
@@ -55,13 +85,14 @@ class UsersService:
                 raise ValueError("Nickname уже занят!")
 
         for field, value in data.items():
-            if field in ["email", "nickname", "phone", "name", "surname", "is_moder", "is_admin", "is_premium", "rating"]:
+            if field in ["email", "nickname", "phone", "name", "surname", "is_moder", "is_admin", "is_premium"]:
                 setattr(user, field, value)
 
         if avatar_url is not None:
             user.avatar_url = avatar_url
 
         await self.sync_user_themes(user, form.theme_ids)
+        await self.recalculate_user_rating(user)
 
         await self.db.commit()
         await self.db.refresh(user)

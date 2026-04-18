@@ -1,12 +1,20 @@
 import { useState } from 'react';
 
+function isVideoUrl(url) {
+  return /\.(mp4|webm|ogg|mov)$/i.test(url || '');
+}
+
 export default function PlaceDetailsPage({ place, onOpenOnMap, onEditPlace }) {
   const [commentText, setCommentText] = useState('');
+  const [activeMediaIndex, setActiveMediaIndex] = useState(0);
 
+  const mediaFiles = Array.isArray(place?.mediaFiles)
+    ? place.mediaFiles.filter(Boolean)
+    : [];
   const safePlace = {
     title: place?.title || 'Без названия',
-    fullDescription: place?.fullDescription || '',
-    image: place?.image || '',
+    fullDescription: place?.fullDescription || place?.description || '',
+    image: place?.image || mediaFiles[0] || '',
     author: place?.author || 'unknown',
     authorAvatar: place?.authorAvatar || null,
     likes: place?.likes || 0,
@@ -15,7 +23,12 @@ export default function PlaceDetailsPage({ place, onOpenOnMap, onEditPlace }) {
     warnings: place?.warnings || '',
     tips: place?.tips || '',
     themes: Array.isArray(place?.themes) ? place.themes : [],
+    mediaFiles,
   };
+
+  const activeMedia =
+    safePlace.mediaFiles[activeMediaIndex] || safePlace.image || null;
+  const hasManyMedia = safePlace.mediaFiles.length > 1;
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -45,20 +58,56 @@ export default function PlaceDetailsPage({ place, onOpenOnMap, onEditPlace }) {
         </div>
 
         <div className="place-details__media">
-          {safePlace.image ? (
-            <img
-              src={safePlace.image}
-              alt={safePlace.title}
-              className="place-details__image"
-            />
-          ) : (
-            <div className="place-details__image place-details__image--empty">
-              Нет медиа
+          <div className="place-details__carousel-frame">
+            {activeMedia ? (
+              isVideoUrl(activeMedia) ? (
+                <video src={activeMedia} className="place-details__image" controls />
+              ) : (
+                <img
+                  src={activeMedia}
+                  alt={safePlace.title}
+                  className="place-details__image"
+                />
+              )
+            ) : (
+              <div className="place-details__image place-details__image--empty">
+                Нет медиа
+              </div>
+            )}
+          </div>
+
+          {hasManyMedia ? (
+            <div className="place-details__carousel-controls">
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() =>
+                  setActiveMediaIndex((prev) =>
+                    prev === 0 ? safePlace.mediaFiles.length - 1 : prev - 1
+                  )
+                }
+              >
+                Назад
+              </button>
+              <span>
+                {activeMediaIndex + 1} / {safePlace.mediaFiles.length}
+              </span>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() =>
+                  setActiveMediaIndex((prev) =>
+                    prev === safePlace.mediaFiles.length - 1 ? 0 : prev + 1
+                  )
+                }
+              >
+                Вперед
+              </button>
             </div>
-          )}
+          ) : null}
 
           <div className="place-details__stats">
-            <div className="place-details__stat">❤️ {safePlace.likes}</div>
+            <div className="place-details__stat">♥ {safePlace.likes}</div>
             <div className="place-details__stat">👁 {safePlace.views}</div>
           </div>
         </div>
@@ -72,7 +121,7 @@ export default function PlaceDetailsPage({ place, onOpenOnMap, onEditPlace }) {
                 className="secondary-button"
                 onClick={() => onOpenOnMap(place)}
               >
-                На карту!
+                На карту
               </button>
 
               <button
@@ -105,7 +154,7 @@ export default function PlaceDetailsPage({ place, onOpenOnMap, onEditPlace }) {
 
           {safePlace.tips ? (
             <div className="place-details__note place-details__note--tip">
-              <h3>Советы</h3>
+              <h3>Совет</h3>
               <p>{safePlace.tips}</p>
             </div>
           ) : null}
@@ -124,7 +173,9 @@ export default function PlaceDetailsPage({ place, onOpenOnMap, onEditPlace }) {
               ))}
             </div>
           ) : (
-            <p className="comments-section__empty">Оставь первый комментарий!</p>
+            <p className="comments-section__empty">
+              Оставь первый комментарий!
+            </p>
           )}
 
           <form className="comment-form" onSubmit={handleSubmit}>

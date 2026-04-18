@@ -12,7 +12,11 @@ export function useThemes() {
 
     try {
       const data = await getThemesRequest();
-      const normalizedThemes = Array.isArray(data) ? data : [];
+      const normalizedThemes = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.themes)
+        ? data.themes
+        : [];
       setThemes(normalizedThemes);
       setError('');
       return normalizedThemes;

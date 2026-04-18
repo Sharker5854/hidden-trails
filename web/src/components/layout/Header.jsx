@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { resolveAvatarUrl } from '../../utils/assets';
 
 export default function Header({ currentPage, onNavigate, user }) {
   const items = [
@@ -37,7 +38,7 @@ export default function Header({ currentPage, onNavigate, user }) {
     user?.email?.trim()?.charAt(0)?.toUpperCase() ||
     'U';
 
-  const avatarUrl = user?.avatar_url || null;
+  const avatarUrl = resolveAvatarUrl(user?.avatar_url);
 
   return (
     <header className="header">

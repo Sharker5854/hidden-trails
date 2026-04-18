@@ -1,23 +1,30 @@
 import { useEffect, useRef, useState } from 'react';
-import Map, { Marker, Popup, NavigationControl } from 'react-map-gl/maplibre';
-import { mockPlaces } from '../data/mockPlaces';
+import Map, { Marker, NavigationControl, Popup } from 'react-map-gl/maplibre';
 
-export default function MapPage({ focusedPlace }) {
-  const [selectedPlace, setSelectedPlace] = useState(focusedPlace || null);
+function hasValidLocation(place) {
+  return Number.isFinite(Number(place?.latitude)) && Number.isFinite(Number(place?.longitude));
+}
+
+export default function MapPage({ places = [], focusedPlace, onOpenDetails }) {
+  const [selectedPlace, setSelectedPlace] = useState(null);
+  const [dismissedFocusedPlaceId, setDismissedFocusedPlaceId] = useState(null);
   const mapRef = useRef(null);
+  const visiblePlace =
+    selectedPlace ||
+    (focusedPlace?.id === dismissedFocusedPlaceId ? null : focusedPlace);
 
   useEffect(() => {
-    if (!focusedPlace || !mapRef.current) return;
-
-    setSelectedPlace(focusedPlace);
+    if (!focusedPlace || !mapRef.current || !hasValidLocation(focusedPlace)) return;
 
     mapRef.current.flyTo({
-      center: [focusedPlace.longitude, focusedPlace.latitude],
+      center: [Number(focusedPlace.longitude), Number(focusedPlace.latitude)],
       zoom: 14,
-      duration: 1800,
+      duration: 1400,
       essential: true,
     });
   }, [focusedPlace]);
+
+  const visiblePlaces = places.filter(hasValidLocation);
 
   return (
     <main className="page">
@@ -39,18 +46,19 @@ export default function MapPage({ focusedPlace }) {
         >
           <NavigationControl position="top-right" />
 
-          {mockPlaces.map((place) => (
+          {visiblePlaces.map((place) => (
             <Marker
               key={place.id}
-              longitude={place.longitude}
-              latitude={place.latitude}
+              longitude={Number(place.longitude)}
+              latitude={Number(place.latitude)}
               anchor="bottom"
             >
               <button
                 type="button"
                 className="marker"
-                onClick={(e) => {
-                  e.stopPropagation();
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setDismissedFocusedPlaceId(null);
                   setSelectedPlace(place);
                 }}
               >
@@ -59,22 +67,32 @@ export default function MapPage({ focusedPlace }) {
             </Marker>
           ))}
 
-          {selectedPlace && (
+          {visiblePlace && hasValidLocation(visiblePlace) ? (
             <Popup
-              longitude={selectedPlace.longitude}
-              latitude={selectedPlace.latitude}
+              longitude={Number(visiblePlace.longitude)}
+              latitude={Number(visiblePlace.latitude)}
               anchor="bottom"
               offset={20}
               closeOnClick={false}
-              onClose={() => setSelectedPlace(null)}
+              onClose={() => {
+                setSelectedPlace(null);
+                setDismissedFocusedPlaceId(visiblePlace.id);
+              }}
             >
               <div className="popup-card">
-                <h3>{selectedPlace.title}</h3>
-                <p>{selectedPlace.description}</p>
-                <span>@{selectedPlace.author}</span>
+                <h3>{visiblePlace.title}</h3>
+                <p>{visiblePlace.description}</p>
+                <span>@{visiblePlace.author}</span>
+                <button
+                  type="button"
+                  className="secondary-button popup-card__button"
+                  onClick={() => onOpenDetails(visiblePlace)}
+                >
+                  Открыть
+                </button>
               </div>
             </Popup>
-          )}
+          ) : null}
         </Map>
       </div>
     </main>

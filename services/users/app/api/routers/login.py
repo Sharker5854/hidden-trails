@@ -17,7 +17,7 @@ from app.models import User, Theme, Geotag, Comment, Achievment
 from app.services.auth import AuthService
 from app.services.users import UsersService
 from app.schemas.users import UserPublic, UserUpdateForm
-from app.schemas.auth import RegisterForm, LoginForm
+from app.schemas.auth import AuthResponse, RegisterForm, LoginForm, SessionResponse
 
 
 
@@ -26,6 +26,28 @@ templates = Jinja2Templates(directory="app/templates")
 
 AVATARS_DIR = settings.base_dir / "static" / "media" / "user-avatars"
 AVATARS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def serialize_user(user: User) -> UserPublic:
+    user.theme_ids = [theme.id for theme in user.themes]
+    return UserPublic.model_validate(user)
+
+
+def set_auth_cookies(response: Response, access_token: str, refresh_token: str) -> None:
+    response.set_cookie(
+        "access_token",
+        access_token,
+        httponly=True,
+        max_age=15 * 60,
+        samesite="lax",
+    )
+    response.set_cookie(
+        "refresh_token",
+        refresh_token,
+        httponly=True,
+        max_age=7 * 86400,
+        samesite="lax",
+    )
 
 
 @router.get("/register", response_class=HTMLResponse)
@@ -37,11 +59,10 @@ async def register_page(request: Request):
 
 @router.post("/register")
 async def register(
-    request: Request,
     response: Response,
     form_data: Annotated[RegisterForm, Form(...)],
     auth_svc: AuthService = Depends(get_auth_service),
-):
+) -> AuthResponse:
     try:
         form_data.validate_passwords_match()
         
@@ -51,6 +72,7 @@ async def register(
             password=form_data.password
         )
     except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
         return templates.TemplateResponse(
             "auth/register.html",
             {
@@ -63,6 +85,8 @@ async def register(
 
     access_token = auth_svc.create_access_token(user.id)
     refresh_token = auth_svc.create_refresh_token(user.id)
+    set_auth_cookies(response, access_token, refresh_token)
+    return AuthResponse(access_token=access_token, refresh_token=refresh_token, user=user)
     
     resp = RedirectResponse("/auth/me", status_code=302)
     resp.set_cookie("access_token", access_token, httponly=True, max_age=15*60)
@@ -78,13 +102,16 @@ async def login_page(request: Request):
 
 @router.post("/login")
 async def login(
-    request: Request,
     response: Response,
     form_data: Annotated[LoginForm, Form(...)],
     auth_svc: AuthService = Depends(get_auth_service),
-):
+) -> AuthResponse:
     user = await auth_svc.authenticate(form_data.email, form_data.password)
     if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid email or password.",
+        )
         return templates.TemplateResponse(
             "auth/login.html",
             {"request": request, "title": "Авторизация", "error": "Неверный email или пароль."},
@@ -93,6 +120,8 @@ async def login(
 
     access_token = auth_svc.create_access_token(user.id)
     refresh_token = auth_svc.create_refresh_token(user.id)
+    set_auth_cookies(response, access_token, refresh_token)
+    return AuthResponse(access_token=access_token, refresh_token=refresh_token, user=user)
 
     resp = RedirectResponse("/auth/me", status_code=status.HTTP_302_FOUND)
     resp.set_cookie("access_token", access_token, httponly=True, max_age=15 * 60, samesite="lax")
@@ -125,9 +154,7 @@ async def refresh(
             "access_token", new_access, 
             httponly=True, max_age=15*60, samesite="lax"
         )
-        response.status_code = 200
-        
-        return response
+        return {"status": "refreshed"}
         
     except jwt.ExpiredSignatureError:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Refresh token expired.")
@@ -137,22 +164,41 @@ async def refresh(
 
 
 
-@router.get("/me")
-async def me_page(
+@router.get("/session", response_model=SessionResponse)
+async def session(
     request: Request,
-    all_themes: List[Theme] = Depends(get_all_themes),
+    auth_svc: AuthService = Depends(get_auth_service),
+    users_svc: UsersService = Depends(get_users_service),
+) -> SessionResponse:
+    access_token = request.cookies.get("access_token")
+    refresh_token = request.cookies.get("refresh_token")
+
+    if not access_token:
+        return SessionResponse(user=None, can_refresh=bool(refresh_token))
+
+    try:
+        payload = auth_svc.decode_token(access_token)
+        if payload.type != "access":
+            return SessionResponse(user=None, can_refresh=bool(refresh_token))
+
+        user = await users_svc.get_by_id(int(payload.sub))
+    except (ValueError, jwt.ExpiredSignatureError):
+        return SessionResponse(user=None, can_refresh=bool(refresh_token))
+
+    if not user:
+        return SessionResponse(user=None, can_refresh=bool(refresh_token))
+
+    return SessionResponse(user=serialize_user(user), can_refresh=bool(refresh_token))
+
+
+@router.get("/me", response_model=UserPublic)
+async def me_page(
     current_user: User = Depends(get_current_user),
-):
-    current_user.theme_ids = [t.id for t in current_user.themes]
-    current_user = UserPublic.model_validate(current_user)
-    return templates.TemplateResponse("auth/me.html", {
-        "request": request, 
-        "current_user": current_user,
-        "all_themes": all_themes
-    })
+) -> UserPublic:
+    return serialize_user(current_user)
 
 
-@router.post("/me")
+@router.post("/me", response_model=UserPublic)
 async def me_post(
     request: Request,
     users_svc: Annotated[UsersService, Depends(get_users_service)],
@@ -166,7 +212,6 @@ async def me_post(
     is_moder: bool = Form(False),
     is_admin: bool = Form(False),
     is_premium: bool = Form(False),
-    rating: int = Form(...),
     avatar_file: Optional[UploadFile] = File(None, alias="avatar_url"),
 
     current_user: User = Depends(get_current_user)
@@ -181,12 +226,12 @@ async def me_post(
         "is_moder": is_moder,
         "is_admin": is_admin,
         "is_premium": is_premium,
-        "rating": rating,
     }
 
     try:
         validated_form = UserUpdateForm.model_validate(form_data)
     except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
         return templates.TemplateResponse(
             "auth/me.html",
             {
@@ -214,6 +259,7 @@ async def me_post(
             avatar_url=new_avatar_path,
         )
     except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
         return templates.TemplateResponse(
             "auth/me.html",
             {
@@ -225,17 +271,16 @@ async def me_post(
             status_code=400,
         )
     
-    return RedirectResponse("/auth/me", status_code=302)
+    return serialize_user(updated_user)
 
 
 
 
 @router.get("/logout")
 async def logout(response: Response):
-    resp = RedirectResponse("/auth/login", status_code=status.HTTP_302_FOUND)
-    resp.delete_cookie("access_token")
-    resp.delete_cookie("refresh_token")
-    return resp
+    response.delete_cookie("access_token")
+    response.delete_cookie("refresh_token")
+    return {"status": "logged_out"}
 
 
 

@@ -30,3 +30,11 @@ export async function updateGeotagRequest(geotagId, geotagData) {
 
   return handleApiResponse(response);
 }
+
+export async function getFeedRequest(limit = 50) {
+  const response = await apiRequest(`/geotag/feed?limit=${limit}`, {
+    method: 'GET',
+  });
+
+  return handleApiResponse(response);
+}

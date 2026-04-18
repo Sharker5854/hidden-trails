@@ -15,7 +15,12 @@ class Geoapify:
         coordinates: List[List[str, str]],
         mode: str   
     ) -> str:
-        
+        if not self.__api_key:
+            raise HTTPException(
+                status_code=503,
+                detail="Geoapify API key is not configured."
+            )
+
         waypoints = "|".join(list(f"{point[0]},{point[1]}" for point in coordinates))
 
         try:

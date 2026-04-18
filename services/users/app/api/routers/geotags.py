@@ -55,7 +55,7 @@ async def get_geotag(
     geotag_id: int,
     geotags_svc: GeotagsService = Depends(get_geotags_service),
 ):
-    geotag = await geotags_svc.get_geotag_public(geotag_id)
+    geotag = await geotags_svc.get_geotag_public(geotag_id, increment_view=True)
     if not geotag:
         raise HTTPException(status_code=404, detail="Геометка не найдена")
     return geotag
@@ -110,14 +110,10 @@ async def create_geotag_post(
         validated_form = GeotagCreateForm.model_validate(form_data)
     except ValueError as e:
         themes = await themes_svc.get_all_themes()
-        return templates.TemplateResponse(
-            "geotags/create.html",
-            {"request": request, "user": current_user, "themes": themes, "error": str(e)},
-            status_code=400,
-        )
+        raise HTTPException(status_code=400, detail=str(e))
 
     media_file_paths = []
-    for i, media_file in enumerate(media_files):
+    for media_file in media_files or []:
         if media_file.filename:
             ext = Path(media_file.filename).suffix or ".jpg"
             safe_title = translit(
@@ -131,7 +127,7 @@ async def create_geotag_post(
             contents = await media_file.read()
             disk_path.write_bytes(contents)
             
-            media_file_paths.append({filename})
+            media_file_paths.append(filename)
 
     
     try:
@@ -142,13 +138,10 @@ async def create_geotag_post(
         )
     except ValueError as e:
         themes = await themes_svc.get_all_themes()
-        return templates.TemplateResponse(
-            "geotags/create.html",
-            {"request": request, "user": current_user, "themes": themes, "error": str(e)},
-            status_code=400,
-        )
+        raise HTTPException(status_code=400, detail=str(e))
     
-    return RedirectResponse(f"/geotag/show/{geotag.id}", status_code=302)
+    geotag = await geotags_svc.get_by_id(geotag.id)
+    return GeotagPublic.from_orm(geotag)
 
 
 
@@ -230,7 +223,7 @@ async def update_geotag(
 
     new_media_paths = []
     
-    for media_file in media_files:
+    for media_file in media_files or []:
         if media_file.filename:
             ext = Path(media_file.filename).suffix or ".png"
             safe_title = translit(
@@ -267,7 +260,8 @@ async def update_geotag(
             status_code=400,
         )
     
-    return RedirectResponse(f"/geotag/show/{geotag_id}", status_code=302)
+    updated_geotag = await geotags_svc.get_by_id(updated_geotag.id)
+    return GeotagPublic.from_orm(updated_geotag)
 
 
 

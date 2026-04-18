@@ -1,20 +1,25 @@
 import { useEffect, useState } from 'react';
 import GeotagForm from '../components/forms/GeotagForm';
-import { useThemes } from '../hooks/useThemes';
 import { useGeotags } from '../hooks/useGeotags';
+import { useThemes } from '../hooks/useThemes';
 
-export default function EditGeotagPage({ geotagId, initialGeotag, onUpdated, onCancel }) {
-  const { themes, isLoading: themesLoading, loadThemes } = useThemes();
+export default function EditGeotagPage({
+  geotagId,
+  initialGeotag,
+  onUpdated,
+  onCancel,
+}) {
+  const { themes, isLoading: themesLoading, error: themesError, loadThemes } = useThemes();
   const { updateGeotag, loadGeotagById, selectedGeotag, isLoading, error } = useGeotags();
   const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
-    loadThemes();
+    loadThemes().catch(() => {});
   }, [loadThemes]);
 
   useEffect(() => {
     if (initialGeotag || !geotagId) return;
-    loadGeotagById(geotagId);
+    loadGeotagById(geotagId).catch(() => {});
   }, [initialGeotag, geotagId, loadGeotagById]);
 
   const geotag = initialGeotag || selectedGeotag;
@@ -22,11 +27,15 @@ export default function EditGeotagPage({ geotagId, initialGeotag, onUpdated, onC
   const handleSubmit = async (data) => {
     setSuccessMessage('');
 
-    const updatedGeotag = await updateGeotag(geotagId, data);
-    setSuccessMessage('Место успешно обновлено');
+    try {
+      const updatedGeotag = await updateGeotag(geotagId, data);
+      setSuccessMessage('Место обновлено');
 
-    if (onUpdated) {
-      onUpdated(updatedGeotag);
+      if (onUpdated) {
+        onUpdated(updatedGeotag);
+      }
+    } catch {
+      // useGeotags already exposes the message in formError.
     }
   };
 
@@ -34,16 +43,17 @@ export default function EditGeotagPage({ geotagId, initialGeotag, onUpdated, onC
     <main className="page">
       <section className="hero">
         <h1>Редактировать место</h1>
-        <p>Обнови информацию о геометке.</p>
+        <p>Обнови карточку, метку на карте, теги или медиа.</p>
       </section>
 
       <section className="geotag-page-card">
         {geotag ? (
           <GeotagForm
+            key={geotag.id || geotagId}
             initialValues={geotag}
             themes={themes}
             themesLoading={themesLoading}
-            formError={error}
+            formError={error || themesError}
             isSubmitting={isLoading}
             submitLabel="Сохранить изменения"
             onSubmit={handleSubmit}

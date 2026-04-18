@@ -3,12 +3,19 @@ export default function PlaceCard({ place, onOpenDetails, onOpenOnMap }) {
 
   return (
     <article className="place-card">
-      <img className="place-card__image" src={place.image} alt={place.title} />
+      {place.image ? (
+        <img className="place-card__image" src={place.image} alt={place.title} />
+      ) : (
+        <div className="place-card__image place-card__image--empty">
+          {place.title?.charAt(0)?.toUpperCase() || 'H'}
+        </div>
+      )}
 
       <div className="place-card__content">
         <div className="place-card__meta">
           <span>@{place.author}</span>
-          <span>{place.likes} ❤️</span>
+          <span>♥ {place.likes}</span>
+          <span>👁 {place.views}</span>
         </div>
 
         <h3 className="place-card__title">{place.title}</h3>
@@ -36,7 +43,7 @@ export default function PlaceCard({ place, onOpenDetails, onOpenOnMap }) {
             className="secondary-button"
             onClick={() => onOpenOnMap(place)}
           >
-            На карту!
+            На карту
           </button>
         </div>
       </div>

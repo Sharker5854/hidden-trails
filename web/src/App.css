@@ -180,6 +180,16 @@
   background: #dfe7e2;
 }
 
+.place-card__image--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary);
+  font-size: 54px;
+  font-weight: 700;
+  background: var(--color-surface-muted);
+}
+
 .place-card__content {
   padding: 18px;
 }
@@ -243,6 +253,10 @@
 .popup-card p {
   margin: 0 0 8px;
   color: var(--color-text-secondary);
+}
+
+.popup-card__button {
+  margin-top: 10px;
 }
 
 .profile-card {
@@ -430,9 +444,35 @@
 
 .place-details__image {
   width: 100%;
+  min-height: 320px;
   max-height: 560px;
   object-fit: cover;
   background: #dfe7e2;
+}
+
+.place-details__carousel-frame video.place-details__image {
+  display: block;
+}
+
+.place-details__carousel-controls,
+.media-preview__controls,
+.place-details__stats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 16px;
+  flex-wrap: wrap;
+}
+
+.place-details__stats {
+  justify-content: flex-start;
+  border-top: 1px solid var(--color-border);
+}
+
+.place-details__stat {
+  color: var(--color-text-secondary);
+  font-weight: 600;
 }
 
 .place-details__content {
@@ -749,6 +789,94 @@
   font-size: 14px;
 }
 
+.geotag-map-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 4px 0 18px;
+}
+
+.geotag-map-picker__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.geotag-map-picker__header h2 {
+  margin: 0 0 6px;
+  font-size: 20px;
+}
+
+.geotag-map-picker__header p {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.geotag-map-picker__coords {
+  align-self: flex-start;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  color: var(--color-text-secondary);
+  background: var(--color-surface-muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.geotag-map-picker__map {
+  height: 360px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
+}
+
+.media-preview {
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
+  margin-bottom: 16px;
+}
+
+.media-preview__frame {
+  width: 100%;
+  height: 360px;
+  background: #dfe7e2;
+}
+
+.media-preview__frame img,
+.media-preview__frame video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.page-state {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.empty-state {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  box-shadow: var(--shadow-soft);
+}
+
+.empty-state h2 {
+  margin: 0 0 8px;
+  font-size: 24px;
+}
+
+.empty-state p {
+  margin: 0 0 18px;
+  color: var(--color-text-secondary);
+}
+
 .place-details__avatar-image {
   width: 56px;
   height: 56px;
@@ -774,6 +902,15 @@
 @media (max-width: 768px) {
   .geotag-form__coords {
     grid-template-columns: 1fr;
+  }
+
+  .geotag-map-picker__map,
+  .media-preview__frame {
+    height: 280px;
+  }
+
+  .place-details__image {
+    min-height: 240px;
   }
 }
 

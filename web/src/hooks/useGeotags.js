@@ -1,14 +1,16 @@
 import { useCallback, useState } from 'react';
 import {
   createGeotagRequest,
+  getFeedRequest,
   getGeotagByIdRequest,
   updateGeotagRequest,
 } from '../api/geotagsApi';
-import { normalizeGeotag } from '../utils/geotags';
+import { normalizeGeotag, normalizeGeotags } from '../utils/geotags';
 import { getErrorMessage } from '../utils/errors';
 
 export function useGeotags() {
   const [selectedGeotag, setSelectedGeotag] = useState(null);
+  const [geotags, setGeotags] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -20,6 +22,26 @@ export function useGeotags() {
       const normalized = normalizeGeotag(data);
 
       setSelectedGeotag(normalized);
+      setError('');
+
+      return normalized;
+    } catch (err) {
+      const message = getErrorMessage(err);
+      setError(message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const loadFeed = useCallback(async () => {
+    setIsLoading(true);
+
+    try {
+      const data = await getFeedRequest();
+      const normalized = normalizeGeotags(data?.geotags || []);
+
+      setGeotags(normalized);
       setError('');
 
       return normalized;
@@ -74,8 +96,10 @@ export function useGeotags() {
 
   return {
     selectedGeotag,
+    geotags,
     isLoading,
     error,
+    loadFeed,
     loadGeotagById,
     createGeotag,
     updateGeotag,

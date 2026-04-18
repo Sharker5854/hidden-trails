@@ -1,6 +1,6 @@
 export const API_BASE_URL = 'http://localhost:8000';
 
-export const DEV_AUTH_ENABLED = true;
+export const DEV_AUTH_ENABLED = false;
 
 export const DEV_USER = {
   id: 1,

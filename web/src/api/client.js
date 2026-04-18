@@ -1,5 +1,14 @@
 import { API_BASE_URL } from '../constants/api';
 
+export class ApiError extends Error {
+  constructor(message, { status, data } = {}) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.data = data;
+  }
+}
+
 export async function apiRequest(path, options = {}) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     credentials: 'include',
@@ -22,9 +31,10 @@ export async function parseJsonResponse(response) {
 export async function handleApiResponse(response) {
   if (!response.ok) {
     let errorMessage = `Request failed: ${response.status}`;
+    let data = null;
 
     try {
-      const data = await parseJsonResponse(response);
+      data = await parseJsonResponse(response);
 
       if (data?.detail) {
         if (typeof data.detail === 'string') {
@@ -37,7 +47,10 @@ export async function handleApiResponse(response) {
       // ignore parse errors
     }
 
-    throw new Error(errorMessage);
+    throw new ApiError(errorMessage, {
+      status: response.status,
+      data,
+    });
   }
 
   return parseJsonResponse(response);

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import './App.css';
 
 import Header from './components/layout/Header';
@@ -11,24 +11,51 @@ import PlaceDetailsPage from './pages/PlaceDetailsPage';
 import CreateGeotagPage from './pages/CreateGeotagPage';
 import EditGeotagPage from './pages/EditGeotagPage';
 import { useAuth } from './hooks/useAuth';
+import { useGeotags } from './hooks/useGeotags';
 
 export default function App() {
   const {
     user,
     isAuthorized,
-    isLoading,
+    isLoading: authLoading,
     authError,
     login,
     register,
     logout,
   } = useAuth();
+  const {
+    isLoading: geotagsLoading,
+    error: geotagsError,
+    loadFeed,
+    loadGeotagById,
+  } = useGeotags();
 
   const [currentPage, setCurrentPage] = useState('login');
+  const [places, setPlaces] = useState([]);
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [mapFocusedPlace, setMapFocusedPlace] = useState(null);
   const [profileUser, setProfileUser] = useState(null);
 
   const activeUser = profileUser || user;
+
+  useEffect(() => {
+    if (!isAuthorized) {
+      return;
+    }
+
+    loadFeed()
+      .then((loadedPlaces) => setPlaces(loadedPlaces))
+      .catch(() => {});
+  }, [isAuthorized, loadFeed]);
+
+  const upsertPlace = (place) => {
+    if (!place) return;
+
+    setPlaces((prev) => [
+      place,
+      ...prev.filter((existingPlace) => existingPlace.id !== place.id),
+    ]);
+  };
 
   const handleLogin = async ({ email, password }) => {
     await login({ email, password });
@@ -53,6 +80,7 @@ export default function App() {
   const handleLogout = async () => {
     await logout();
     setCurrentPage('login');
+    setPlaces([]);
     setSelectedPlace(null);
     setMapFocusedPlace(null);
     setProfileUser(null);
@@ -70,6 +98,15 @@ export default function App() {
   const handleOpenDetails = (place) => {
     setSelectedPlace(place);
     setCurrentPage('place-details');
+
+    if (place?.id) {
+      loadGeotagById(place.id)
+        .then((freshPlace) => {
+          setSelectedPlace(freshPlace);
+          upsertPlace(freshPlace);
+        })
+        .catch(() => {});
+    }
   };
 
   const handleOpenOnMap = (place) => {
@@ -87,8 +124,19 @@ export default function App() {
     setCurrentPage('edit-geotag');
   };
 
+  const renderFeed = () => (
+    <FeedPage
+      places={places}
+      isLoading={geotagsLoading}
+      error={geotagsError}
+      onOpenDetails={handleOpenDetails}
+      onOpenOnMap={handleOpenOnMap}
+      onOpenCreateGeotag={handleOpenCreateGeotag}
+    />
+  );
+
   const renderPage = () => {
-    if (isLoading && !isAuthorized) {
+    if (authLoading && !isAuthorized) {
       return (
         <main className="page auth-page">
           <div className="auth-form">
@@ -104,7 +152,7 @@ export default function App() {
           <RegisterPage
             onRegister={handleRegister}
             onGoToLogin={() => setCurrentPage('login')}
-            isLoading={isLoading}
+            isLoading={authLoading}
             error={authError}
           />
         );
@@ -114,7 +162,7 @@ export default function App() {
         <LoginPage
           onLogin={handleLogin}
           onGoToRegister={() => setCurrentPage('register')}
-          isLoading={isLoading}
+          isLoading={authLoading}
           error={authError}
         />
       );
@@ -122,10 +170,17 @@ export default function App() {
 
     switch (currentPage) {
       case 'map':
-        return <MapPage focusedPlace={mapFocusedPlace} />;
+        return (
+          <MapPage
+            places={places}
+            focusedPlace={mapFocusedPlace}
+            onOpenDetails={handleOpenDetails}
+          />
+        );
       case 'profile':
         return (
           <ProfilePage
+            places={places}
             onOpenDetails={handleOpenDetails}
             onOpenOnMap={handleOpenOnMap}
             onProfileLoaded={setProfileUser}
@@ -139,17 +194,15 @@ export default function App() {
             onEditPlace={handleOpenEditGeotag}
           />
         ) : (
-          <FeedPage
-            onOpenDetails={handleOpenDetails}
-            onOpenOnMap={handleOpenOnMap}
-            onOpenCreateGeotag={handleOpenCreateGeotag}
-          />
+          renderFeed()
         );
       case 'create-geotag':
         return (
           <CreateGeotagPage
             onCreated={(createdGeotag) => {
+              upsertPlace(createdGeotag);
               setSelectedPlace(createdGeotag);
+              setMapFocusedPlace(createdGeotag);
               setCurrentPage('place-details');
             }}
             onCancel={() => setCurrentPage('feed')}
@@ -161,27 +214,19 @@ export default function App() {
             geotagId={selectedPlace.id}
             initialGeotag={selectedPlace}
             onUpdated={(updatedGeotag) => {
+              upsertPlace(updatedGeotag);
               setSelectedPlace(updatedGeotag);
+              setMapFocusedPlace(updatedGeotag);
               setCurrentPage('place-details');
             }}
             onCancel={() => setCurrentPage('place-details')}
           />
         ) : (
-          <FeedPage
-            onOpenDetails={handleOpenDetails}
-            onOpenOnMap={handleOpenOnMap}
-            onOpenCreateGeotag={handleOpenCreateGeotag}
-          />
+          renderFeed()
         );
       case 'feed':
       default:
-        return (
-          <FeedPage
-            onOpenDetails={handleOpenDetails}
-            onOpenOnMap={handleOpenOnMap}
-            onOpenCreateGeotag={handleOpenCreateGeotag}
-          />
-        );
+        return renderFeed();
     }
   };
 

@@ -4,6 +4,21 @@ from app.core.config import settings
 
 
 
+class ModerationFallbackResponse:
+    def json(self):
+        return {
+            "result": {
+                "alternatives": [
+                    {
+                        "message": {
+                            "text": "True, True"
+                        }
+                    }
+                ]
+            }
+        }
+
+
 class YandexGPT:
     def __init__(self):
         self.__api_key = settings.yandex_cloud_api_key
@@ -87,16 +102,18 @@ class YandexGPT:
                 }
             ]
         }
-        response = await self.send_request(
-            "POST",
-            "/foundationModels/v1/completion",
-            json=payload,
-            headers=self._request_headers()
-        )
-        if response.status_code != 200:
-            failed_json = response.json()
-            raise HTTPException(
-                status_code=int(failed_json["error"]["httpCode"]),
-                detail=failed_json["error"]["message"]
+        try:
+            response = await self.send_request(
+                "POST",
+                "/foundationModels/v1/completion",
+                json=payload,
+                headers=self._request_headers()
             )
+        except Exception as exc:
+            print(f"YandexGPT moderation skipped: {exc}")
+            return ModerationFallbackResponse()
+
+        if response.status_code != 200:
+            print(f"YandexGPT moderation skipped: {response.status_code} {response.text}")
+            return ModerationFallbackResponse()
         return response

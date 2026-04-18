@@ -1,4 +1,4 @@
-from typing import Optional, List
+﻿from typing import Optional, List
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 from datetime import datetime
 
@@ -8,7 +8,7 @@ class UserCreate(BaseModel):
     nickname: str = Field(..., min_length=3, max_length=50)
     password: str = Field(..., min_length=4)
 
-    # hashed_password заполнит сервис
+    # hashed_password Р·Р°РїРѕР»РЅРёС‚ СЃРµСЂРІРёСЃ
     hashed_password: Optional[str] = None
     
 
@@ -24,17 +24,12 @@ class UserUpdateForm(BaseModel):
     is_moder: bool = False
     is_admin: bool = False
     is_premium: bool = False
-
-    rating: Optional[int] = None
-
     @model_validator(mode="after")
     def validate_required_fields(self):
         if not self.email:
-            raise ValueError("Email обязателен!")
+            raise ValueError("Email РѕР±СЏР·Р°С‚РµР»РµРЅ!")
         if not self.nickname:
-            raise ValueError("Nickname обязателен!")
-        if self.rating is None:
-            raise ValueError("Rating обязателен!")
+            raise ValueError("Nickname is required.")
         return self
 
     @field_validator("phone")
@@ -49,13 +44,6 @@ class UserUpdateForm(BaseModel):
     def empty_str_to_none(cls, v: Optional[str]) -> Optional[str]:
         if v == "":
             return None
-        return v
-    
-    @field_validator("rating")
-    @classmethod
-    def rating_range(cls, v):
-        if v is not None and not (1 <= v <= 100):
-            raise ValueError("Rating: must be from 1 to 100")
         return v
 
 

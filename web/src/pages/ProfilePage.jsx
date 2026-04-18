@@ -1,10 +1,25 @@
-import { useEffect, useMemo, useState } from 'react';
-import { mockPlaces } from '../data/mockPlaces';
+﻿import { useEffect, useMemo, useState } from 'react';
 import PlaceCard from '../components/place/PlaceCard';
 import { useProfile } from '../hooks/useProfile';
 import { useAchievements } from '../hooks/useAchievements';
+import { resolveAvatarUrl } from '../utils/assets';
 
-export default function ProfilePage({ onOpenDetails, onOpenOnMap, onProfileLoaded }) {
+function profileToFormState(profile) {
+  return {
+    email: profile?.email || '',
+    nickname: profile?.nickname || '',
+    phone: profile?.phone || '',
+    name: profile?.name || '',
+    surname: profile?.surname || '',
+  };
+}
+
+export default function ProfilePage({
+  places = [],
+  onOpenDetails,
+  onOpenOnMap,
+  onProfileLoaded,
+}) {
   const { profile, isLoading, error, loadProfile, updateProfile } = useProfile();
   const {
     achievements,
@@ -16,14 +31,7 @@ export default function ProfilePage({ onOpenDetails, onOpenOnMap, onProfileLoade
   const [avatarFile, setAvatarFile] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
 
-  const [formState, setFormState] = useState({
-    email: '',
-    nickname: '',
-    phone: '',
-    name: '',
-    surname: '',
-    rating: 0,
-  });
+  const [formState, setFormState] = useState(() => profileToFormState(null));
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -40,15 +48,6 @@ export default function ProfilePage({ onOpenDetails, onOpenOnMap, onProfileLoade
   useEffect(() => {
     if (!profile) return;
 
-    setFormState({
-      email: profile.email || '',
-      nickname: profile.nickname || '',
-      phone: profile.phone || '',
-      name: profile.name || '',
-      surname: profile.surname || '',
-      rating: profile.rating ?? 0,
-    });
-
     if (onProfileLoaded) {
       onProfileLoaded(profile);
     }
@@ -56,11 +55,13 @@ export default function ProfilePage({ onOpenDetails, onOpenOnMap, onProfileLoade
 
   const avatarLetter = useMemo(() => {
     return (
-      formState.nickname?.trim()?.charAt(0)?.toUpperCase() ||
-      formState.email?.trim()?.charAt(0)?.toUpperCase() ||
+      (isEditing ? formState.nickname : profile?.nickname)?.trim()?.charAt(0)?.toUpperCase() ||
+      (isEditing ? formState.email : profile?.email)?.trim()?.charAt(0)?.toUpperCase() ||
       'U'
     );
-  }, [formState.nickname, formState.email]);
+  }, [formState.nickname, formState.email, isEditing, profile?.nickname, profile?.email]);
+  const avatarUrl = resolveAvatarUrl(profile?.avatar_url);
+  const ownPlaces = places.filter((place) => place.author === profile?.nickname);
 
   const handleChange = (field) => (event) => {
     setFormState((prev) => ({
@@ -79,7 +80,6 @@ export default function ProfilePage({ onOpenDetails, onOpenOnMap, onProfileLoade
       phone: formState.phone,
       name: formState.name,
       surname: formState.surname,
-      rating: Number(formState.rating) || 0,
     };
 
     if (avatarFile) {
@@ -87,6 +87,7 @@ export default function ProfilePage({ onOpenDetails, onOpenOnMap, onProfileLoade
     }
 
     const updatedProfile = await updateProfile(payload);
+    setFormState(profileToFormState(updatedProfile));
 
     if (onProfileLoaded) {
       onProfileLoaded(updatedProfile);
@@ -112,9 +113,9 @@ export default function ProfilePage({ onOpenDetails, onOpenOnMap, onProfileLoade
   return (
     <main className="page">
       <section className="profile-card profile-card--large">
-        {profile?.avatar_url ? (
+        {avatarUrl ? (
           <img
-            src={profile.avatar_url}
+            src={avatarUrl}
             alt="Аватар профиля"
             className="profile-card__avatar-image-large"
           />
@@ -136,6 +137,7 @@ export default function ProfilePage({ onOpenDetails, onOpenOnMap, onProfileLoade
                 <button
                   className="secondary-button"
                   onClick={() => {
+                    setFormState(profileToFormState(profile));
                     setSuccessMessage('');
                     setIsEditing(true);
                   }}
@@ -229,16 +231,6 @@ export default function ProfilePage({ onOpenDetails, onOpenOnMap, onProfileLoade
               </label>
 
               <label className="auth-form__label">
-                Рейтинг
-                <input
-                  className="auth-form__input"
-                  type="number"
-                  value={formState.rating}
-                  onChange={handleChange('rating')}
-                />
-              </label>
-
-              <label className="auth-form__label">
                 Аватар
                 <input
                   className="auth-form__input"
@@ -314,17 +306,22 @@ export default function ProfilePage({ onOpenDetails, onOpenOnMap, onProfileLoade
 
       <section>
         <h2 className="section-title">Мои публикации</h2>
-        <div className="feed-grid">
-          {mockPlaces.slice(0, 2).map((place) => (
-            <PlaceCard
-              key={place.id}
-              place={place}
-              onOpenDetails={onOpenDetails}
-              onOpenOnMap={onOpenOnMap}
-            />
-          ))}
-        </div>
+        {ownPlaces.length > 0 ? (
+          <div className="feed-grid">
+            {ownPlaces.map((place) => (
+              <PlaceCard
+                key={place.id}
+                place={place}
+                onOpenDetails={onOpenDetails}
+                onOpenOnMap={onOpenOnMap}
+              />
+            ))}
+          </div>
+        ) : (
+          <p className="profile-section-header__hint">Публикаций пока нет</p>
+        )}
       </section>
     </main>
   );
 }
+
