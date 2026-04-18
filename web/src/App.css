@@ -649,8 +649,17 @@
 }
 
 .comment-card__author {
-  font-weight: 600;
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: var(--color-primary);
+  font-weight: 700;
   margin-bottom: 6px;
+}
+
+.comment-card__author:disabled {
+  color: var(--color-text-primary);
+  cursor: default;
 }
 
 .comment-card__text {
@@ -704,6 +713,38 @@
 
 .comment-form__button {
   align-self: flex-start;
+}
+
+.comment-form__bottom {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.emoji-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.emoji-picker__button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.emoji-picker__button:hover {
+  background: var(--color-mint-soft);
+  transform: translateY(-1px);
 }
 
 @media (max-width: 768px) {
@@ -1468,6 +1509,13 @@
   resize: vertical;
 }
 
+.message-form__side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+
 @media (max-width: 860px) {
   .messages-layout {
     grid-template-columns: 1fr;
@@ -1479,5 +1527,9 @@
 
   .message-form {
     flex-direction: column;
+  }
+
+  .message-form__side {
+    width: 100%;
   }
 }

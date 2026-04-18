@@ -1,8 +1,9 @@
 import { apiRequest, handleApiResponse } from './client';
 import { buildFormData } from '../utils/formData';
 
-export async function getGeotagByIdRequest(geotagId) {
-  const response = await apiRequest(`/geotag/show/${geotagId}`, {
+export async function getGeotagByIdRequest(geotagId, { trackView = true } = {}) {
+  const params = new URLSearchParams({ track_view: String(trackView) });
+  const response = await apiRequest(`/geotag/show/${geotagId}?${params.toString()}`, {
     method: 'GET',
   });
 

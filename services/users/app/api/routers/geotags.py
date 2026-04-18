@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional, List, Annotated
 from pathlib import Path
 from fastapi import Path as QueryPath
-from fastapi import APIRouter, Request, Depends, Form, HTTPException, UploadFile, File
+from fastapi import APIRouter, Request, Depends, Form, HTTPException, UploadFile, File, Query
 from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.encoders import jsonable_encoder
 from fastapi.templating import Jinja2Templates
@@ -84,12 +84,13 @@ async def save_geotag_media_files(media_files: Optional[List[UploadFile]], title
 async def get_geotag(
     request: Request,
     geotag_id: int,
+    track_view: bool = Query(True),
     geotags_svc: GeotagsService = Depends(get_geotags_service),
     current_user: User = Depends(get_current_user),
 ):
     geotag = await geotags_svc.get_geotag_public(
         geotag_id,
-        increment_view=True,
+        increment_view=track_view,
         current_user_id=current_user.id,
     )
     if not geotag:

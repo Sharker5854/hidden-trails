@@ -6,8 +6,17 @@ from sqlalchemy import func, select
 from app.models.users import User
 from app.models.themes import Theme
 from app.models.geotags import Geotag
+from app.models.comments import Comment
+from app.models.user_achievments import user_achievments
 from app.schemas.geotags import GeotagPublic
 from app.schemas.users import PublicUserProfile, UserCreate, UserMiniPublic, UserUpdateForm
+
+
+VIEW_SCORE = 1
+LIKE_SCORE = 6
+COMMENT_SCORE = 3
+POST_SCORE = 12
+ACHIEVEMENT_SCORE = 25
 
 
 class UsersService:
@@ -113,13 +122,36 @@ class UsersService:
 
     async def recalculate_user_rating(self, user: User | int) -> int:
         user_id = user if isinstance(user, int) else user.id
-        stmt = select(
-            func.coalesce(func.sum(Geotag.likes_count + Geotag.views_count), 0)
-        ).where(
-            Geotag.author_id == user_id
+
+        geotag_stats_stmt = select(
+            func.coalesce(func.sum(Geotag.likes_count), 0),
+            func.coalesce(func.sum(Geotag.views_count), 0),
+            func.count(Geotag.id),
+        ).where(Geotag.author_id == user_id)
+        geotag_stats_result = await self.db.execute(geotag_stats_stmt)
+        likes_count, views_count, posts_count = geotag_stats_result.one()
+
+        comments_stmt = (
+            select(func.count(Comment.id))
+            .join(Geotag, Comment.geotag_id == Geotag.id)
+            .where(Geotag.author_id == user_id)
         )
-        result = await self.db.execute(stmt)
-        rating = int(result.scalar_one() or 0)
+        comments_result = await self.db.execute(comments_stmt)
+        comments_count = int(comments_result.scalar_one() or 0)
+
+        achievements_stmt = select(func.count()).select_from(user_achievments).where(
+            user_achievments.c.user_id == user_id
+        )
+        achievements_result = await self.db.execute(achievements_stmt)
+        achievements_count = int(achievements_result.scalar_one() or 0)
+
+        rating = int(
+            (int(likes_count or 0) * LIKE_SCORE)
+            + (int(views_count or 0) * VIEW_SCORE)
+            + (comments_count * COMMENT_SCORE)
+            + (int(posts_count or 0) * POST_SCORE)
+            + (achievements_count * ACHIEVEMENT_SCORE)
+        )
 
         target_user = user
         if isinstance(user, int):

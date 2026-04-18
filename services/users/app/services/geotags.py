@@ -90,6 +90,8 @@ class GeotagsService:
                 theme_id=theme_id
             )
             await self.db.execute(stmt)
+
+        await UsersService(self.db).recalculate_user_rating(author_id)
         
         await self.db.commit()
         await self.db.refresh(geotag)
@@ -107,7 +109,13 @@ class GeotagsService:
         if not geotag:
             return None
 
-        if increment_view:
+        should_increment_view = (
+            increment_view
+            and current_user_id is not None
+            and geotag.author_id != current_user_id
+        )
+
+        if should_increment_view:
             geotag.views_count += 1
             await UsersService(self.db).recalculate_user_rating(geotag.author_id)
             await self.db.commit()

@@ -7,6 +7,7 @@ import {
   likeGeotagRequest,
   unlikeGeotagRequest,
 } from '../api/geotagsApi';
+import EmojiPicker from '../components/forms/EmojiPicker';
 import { getErrorMessage } from '../utils/errors';
 
 function isVideoUrl(url) {
@@ -17,6 +18,7 @@ function normalizeComment(comment) {
   return {
     id: comment.id,
     text: comment.text || '',
+    authorId: comment.author?.id || comment.author_id || null,
     author:
       comment.author?.nickname ||
       comment.author ||
@@ -27,6 +29,19 @@ function normalizeComment(comment) {
       ? comment.replies.map(normalizeComment)
       : [],
   };
+}
+
+function CommentAuthor({ comment, onOpenUserProfile }) {
+  return (
+    <button
+      type="button"
+      className="comment-card__author"
+      onClick={() => onOpenUserProfile?.(comment.authorId)}
+      disabled={!comment.authorId}
+    >
+      @{comment.author}
+    </button>
+  );
 }
 
 export default function PlaceDetailsPage({
@@ -92,6 +107,10 @@ export default function PlaceDetailsPage({
   const activeMedia =
     safePlace.mediaFiles[activeMediaIndex] || safePlace.image || null;
   const hasManyMedia = safePlace.mediaFiles.length > 1;
+
+  const appendCommentEmoji = (emoji) => {
+    setCommentText((prev) => `${prev}${emoji}`);
+  };
 
   const updatePlaceLikes = (nextLikes, nextIsLiked) => {
     setLikes(nextLikes);
@@ -235,9 +254,9 @@ export default function PlaceDetailsPage({
               onClick={handleLikeToggle}
               disabled={isLikeSubmitting}
             >
-              ♥ {likes}
+              {likes} лайков
             </button>
-            <div className="place-details__stat">👁 {safePlace.views}</div>
+            <div className="place-details__stat">{safePlace.views} просмотров</div>
           </div>
 
           {likeError ? <p className="auth-form__error">{likeError}</p> : null}
@@ -302,13 +321,19 @@ export default function PlaceDetailsPage({
             <div className="comments-list">
               {comments.map((comment) => (
                 <article key={comment.id} className="comment-card">
-                  <div className="comment-card__author">@{comment.author}</div>
+                  <CommentAuthor
+                    comment={comment}
+                    onOpenUserProfile={onOpenUserProfile}
+                  />
                   <p className="comment-card__text">{comment.text}</p>
                   {comment.replies.length > 0 ? (
                     <div className="comment-card__replies">
                       {comment.replies.map((reply) => (
                         <article key={reply.id} className="comment-card comment-card--reply">
-                          <div className="comment-card__author">@{reply.author}</div>
+                          <CommentAuthor
+                            comment={reply}
+                            onOpenUserProfile={onOpenUserProfile}
+                          />
                           <p className="comment-card__text">{reply.text}</p>
                         </article>
                       ))}
@@ -332,13 +357,16 @@ export default function PlaceDetailsPage({
               required
             />
 
-            <button
-              type="submit"
-              className="primary-button comment-form__button"
-              disabled={isCommentSubmitting}
-            >
-              {isCommentSubmitting ? 'Отправляем...' : 'Отправить'}
-            </button>
+            <div className="comment-form__bottom">
+              <EmojiPicker onSelect={appendCommentEmoji} />
+              <button
+                type="submit"
+                className="primary-button comment-form__button"
+                disabled={isCommentSubmitting}
+              >
+                {isCommentSubmitting ? 'Отправляем...' : 'Отправить'}
+              </button>
+            </div>
           </form>
         </section>
       </section>

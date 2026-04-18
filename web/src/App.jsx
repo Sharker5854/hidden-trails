@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './App.css';
 
 import Header from './components/layout/Header';
@@ -40,6 +40,7 @@ export default function App() {
   const [mapFocusedPlace, setMapFocusedPlace] = useState(null);
   const [profileUser, setProfileUser] = useState(null);
   const [messageRecipientId, setMessageRecipientId] = useState(null);
+  const viewedGeotagIdsRef = useRef(new Set());
 
   const activeUser = profileUser || user;
 
@@ -91,6 +92,7 @@ export default function App() {
     setMapFocusedPlace(null);
     setProfileUser(null);
     setMessageRecipientId(null);
+    viewedGeotagIdsRef.current.clear();
   };
 
   const handleNavigate = (page) => {
@@ -111,8 +113,10 @@ export default function App() {
     setCurrentPage('place-details');
 
     if (place?.id) {
-      loadGeotagById(place.id)
+      const shouldTrackView = !viewedGeotagIdsRef.current.has(place.id);
+      loadGeotagById(place.id, { trackView: shouldTrackView })
         .then((freshPlace) => {
+          viewedGeotagIdsRef.current.add(place.id);
           setSelectedPlace(freshPlace);
           upsertPlace(freshPlace);
         })

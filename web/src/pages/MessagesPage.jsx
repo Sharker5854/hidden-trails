@@ -5,6 +5,7 @@ import {
   sendMessageRequest,
 } from '../api/messagesApi';
 import { getUserProfileRequest } from '../api/usersApi';
+import EmojiPicker from '../components/forms/EmojiPicker';
 import { getErrorMessage } from '../utils/errors';
 import {
   normalizeConversations,
@@ -123,6 +124,10 @@ export default function MessagesPage({
   const handleSelectConversation = (conversation) => {
     setDraftRecipientId(null);
     setSelectedConversationId(conversation.id);
+  };
+
+  const appendMessageEmoji = (emoji) => {
+    setMessageText((prev) => `${prev}${emoji}`);
   };
 
   const handleSubmit = async (event) => {
@@ -261,13 +266,16 @@ export default function MessagesPage({
                   placeholder="Напиши сообщение"
                   maxLength={4000}
                 />
-                <button
-                  type="submit"
-                  className="primary-button"
-                  disabled={isSending || !messageText.trim()}
-                >
-                  Отправить
-                </button>
+                <div className="message-form__side">
+                  <EmojiPicker onSelect={appendMessageEmoji} />
+                  <button
+                    type="submit"
+                    className="primary-button"
+                    disabled={isSending || !messageText.trim()}
+                  >
+                    Отправить
+                  </button>
+                </div>
               </form>
             </>
           ) : (

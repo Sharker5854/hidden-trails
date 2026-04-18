@@ -18,11 +18,11 @@ export function useGeotags() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const loadGeotagById = useCallback(async (geotagId) => {
+  const loadGeotagById = useCallback(async (geotagId, options = {}) => {
     setIsLoading(true);
 
     try {
-      const data = await getGeotagByIdRequest(geotagId);
+      const data = await getGeotagByIdRequest(geotagId, options);
       const normalized = normalizeGeotag(data);
 
       setSelectedGeotag(normalized);
