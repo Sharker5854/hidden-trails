@@ -6,6 +6,7 @@ export default function FeedPage({
   error,
   onOpenDetails,
   onOpenOnMap,
+  onOpenUserProfile,
   onOpenCreateGeotag,
 }) {
   return (
@@ -45,6 +46,7 @@ export default function FeedPage({
               place={place}
               onOpenDetails={onOpenDetails}
               onOpenOnMap={onOpenOnMap}
+              onOpenUserProfile={onOpenUserProfile}
             />
           ))}
         </section>

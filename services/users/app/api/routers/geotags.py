@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from typing import Optional, List, Annotated
 from pathlib import Path
 from fastapi import Path as QueryPath
@@ -308,11 +309,13 @@ async def unsave_geotag(
 async def get_feed(
     geotags_svc: Annotated[GeotagsService, Depends(get_geotags_service)],
     limit: int = 10,
+    following_since: Optional[datetime] = None,
     user: User = Depends(get_current_user),
 ):
     feed = await geotags_svc.geotags_feed(
         user_id=user.id,
         limit=limit,
+        following_since=following_since,
     )
     
     public_geotags: List[GeotagPublic] = jsonable_encoder([

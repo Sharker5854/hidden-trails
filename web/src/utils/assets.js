@@ -33,3 +33,19 @@ export function resolveGeotagMediaUrl(mediaUrl) {
 
   return `${API_BASE_URL}${normalizedPath}`;
 }
+
+export function resolveAchievementImageUrl(imageUrl) {
+  if (!imageUrl || imageUrl === DEFAULT_AVATAR) {
+    return null;
+  }
+
+  if (/^(blob:|data:|https?:\/\/)/.test(imageUrl)) {
+    return imageUrl;
+  }
+
+  const normalizedPath = imageUrl.startsWith('/static/')
+    ? imageUrl
+    : `/static/media/achievment-pictures/${imageUrl}`;
+
+  return `${API_BASE_URL}${normalizedPath}`;
+}

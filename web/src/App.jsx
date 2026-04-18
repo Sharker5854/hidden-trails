@@ -10,6 +10,8 @@ import RegisterPage from './pages/RegisterPage';
 import PlaceDetailsPage from './pages/PlaceDetailsPage';
 import CreateGeotagPage from './pages/CreateGeotagPage';
 import EditGeotagPage from './pages/EditGeotagPage';
+import UserSearchPage from './pages/UserSearchPage';
+import UserProfilePage from './pages/UserProfilePage';
 import { useAuth } from './hooks/useAuth';
 import { useGeotags } from './hooks/useGeotags';
 
@@ -33,6 +35,7 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState('login');
   const [places, setPlaces] = useState([]);
   const [selectedPlace, setSelectedPlace] = useState(null);
+  const [selectedUserId, setSelectedUserId] = useState(null);
   const [mapFocusedPlace, setMapFocusedPlace] = useState(null);
   const [profileUser, setProfileUser] = useState(null);
 
@@ -82,6 +85,7 @@ export default function App() {
     setCurrentPage('login');
     setPlaces([]);
     setSelectedPlace(null);
+    setSelectedUserId(null);
     setMapFocusedPlace(null);
     setProfileUser(null);
   };
@@ -124,6 +128,18 @@ export default function App() {
     setCurrentPage('edit-geotag');
   };
 
+  const handleOpenUserProfile = (userId) => {
+    if (!userId) return;
+
+    if (user?.id === userId) {
+      setCurrentPage('profile');
+      return;
+    }
+
+    setSelectedUserId(userId);
+    setCurrentPage('user-profile');
+  };
+
   const renderFeed = () => (
     <FeedPage
       places={places}
@@ -131,6 +147,7 @@ export default function App() {
       error={geotagsError}
       onOpenDetails={handleOpenDetails}
       onOpenOnMap={handleOpenOnMap}
+      onOpenUserProfile={handleOpenUserProfile}
       onOpenCreateGeotag={handleOpenCreateGeotag}
     />
   );
@@ -175,6 +192,7 @@ export default function App() {
             places={places}
             focusedPlace={mapFocusedPlace}
             onOpenDetails={handleOpenDetails}
+            onOpenUserProfile={handleOpenUserProfile}
           />
         );
       case 'profile':
@@ -183,8 +201,22 @@ export default function App() {
             places={places}
             onOpenDetails={handleOpenDetails}
             onOpenOnMap={handleOpenOnMap}
+            onOpenUserProfile={handleOpenUserProfile}
             onProfileLoaded={setProfileUser}
           />
+        );
+      case 'users-search':
+        return <UserSearchPage onOpenUserProfile={handleOpenUserProfile} />;
+      case 'user-profile':
+        return selectedUserId ? (
+          <UserProfilePage
+            userId={selectedUserId}
+            onOpenDetails={handleOpenDetails}
+            onOpenOnMap={handleOpenOnMap}
+            onOpenUserProfile={handleOpenUserProfile}
+          />
+        ) : (
+          renderFeed()
         );
       case 'place-details':
         return selectedPlace ? (
@@ -192,6 +224,7 @@ export default function App() {
             place={selectedPlace}
             onOpenOnMap={handleOpenOnMap}
             onEditPlace={handleOpenEditGeotag}
+            onOpenUserProfile={handleOpenUserProfile}
             onPlaceUpdated={(updatedPlace) => {
               setSelectedPlace(updatedPlace);
               upsertPlace(updatedPlace);

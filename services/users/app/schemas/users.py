@@ -67,3 +67,34 @@ class UserPublic(BaseModel):
         from_attributes = True
 
 
+class UserMiniPublic(BaseModel):
+    id: int
+    nickname: str
+    avatar_url: str
+    rating: int = 0
+
+    class Config:
+        from_attributes = True
+
+
+class PublicUserProfile(BaseModel):
+    id: int
+    nickname: str
+    avatar_url: str
+    name: Optional[str]
+    surname: Optional[str]
+    rating: int
+    register_at: datetime
+    followers_count: int
+    following_count: int
+    is_followed_by_current_user: bool
+    is_current_user: bool
+    followers: List[UserMiniPublic] = []
+    following: List[UserMiniPublic] = []
+    achievements: List[dict] = []
+    geotags: List[dict] = []
+
+    class Config:
+        from_attributes = True
+
+

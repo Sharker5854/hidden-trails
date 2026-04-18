@@ -1,4 +1,9 @@
-export default function PlaceCard({ place, onOpenDetails, onOpenOnMap }) {
+export default function PlaceCard({
+  place,
+  onOpenDetails,
+  onOpenOnMap,
+  onOpenUserProfile,
+}) {
   const themes = Array.isArray(place.themes) ? place.themes : [];
 
   return (
@@ -13,7 +18,13 @@ export default function PlaceCard({ place, onOpenDetails, onOpenOnMap }) {
 
       <div className="place-card__content">
         <div className="place-card__meta">
-          <span>@{place.author}</span>
+          <button
+            type="button"
+            className="place-card__author-button"
+            onClick={() => onOpenUserProfile?.(place.authorId)}
+          >
+            @{place.author}
+          </button>
           <span>♥ {place.likes}</span>
           <span>👁 {place.views}</span>
         </div>

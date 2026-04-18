@@ -39,6 +39,7 @@ export function normalizeGeotag(rawGeotag) {
       rawGeotag.author_nickname ??
       rawGeotag.nickname ??
       'unknown',
+    authorId: rawGeotag.author?.id ?? rawGeotag.author_id ?? null,
     authorAvatar: resolveAvatarUrl(
       rawGeotag.author?.avatar_url ?? rawGeotag.author_avatar_url ?? null
     ),

@@ -253,6 +253,7 @@ class GeotagsService:
         self,
         user_id: int,
         limit: int = 20,
+        following_since: Optional[datetime.datetime] = None,
     ) -> List[Geotag]:
         
         user_stmt = select(User).options(
@@ -284,6 +285,17 @@ class GeotagsService:
             (Geotag.author_id == user_id, -1_000_000),
             else_=0
         )
+
+        followed_new_bonus = case(
+            (
+                and_(
+                    Geotag.author_id.in_(following_ids),
+                    Geotag.created_at > following_since
+                ),
+                5_000_000
+            ),
+            else_=0
+        ) if following_since else 0
         
         stmt = select(Geotag).options(
             selectinload(Geotag.author),
@@ -291,7 +303,12 @@ class GeotagsService:
             selectinload(Geotag.comments),
             selectinload(Geotag.likers),
         ).order_by(
-            desc((main_priority * 1_000_000) + (theme_bonus * 10_000) + own_articles_penalty),
+            desc(
+                followed_new_bonus
+                + (main_priority * 1_000_000)
+                + (theme_bonus * 10_000)
+                + own_articles_penalty
+            ),
             Geotag.created_at.desc(),
             desc(Geotag.likes_count),
         ).limit(limit)

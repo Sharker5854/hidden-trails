@@ -5,7 +5,12 @@ function hasValidLocation(place) {
   return Number.isFinite(Number(place?.latitude)) && Number.isFinite(Number(place?.longitude));
 }
 
-export default function MapPage({ places = [], focusedPlace, onOpenDetails }) {
+export default function MapPage({
+  places = [],
+  focusedPlace,
+  onOpenDetails,
+  onOpenUserProfile,
+}) {
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [dismissedFocusedPlaceId, setDismissedFocusedPlaceId] = useState(null);
   const mapRef = useRef(null);
@@ -82,7 +87,13 @@ export default function MapPage({ places = [], focusedPlace, onOpenDetails }) {
               <div className="popup-card">
                 <h3>{visiblePlace.title}</h3>
                 <p>{visiblePlace.description}</p>
-                <span>@{visiblePlace.author}</span>
+                <button
+                  type="button"
+                  className="popup-card__author"
+                  onClick={() => onOpenUserProfile?.(visiblePlace.authorId)}
+                >
+                  @{visiblePlace.author}
+                </button>
                 <button
                   type="button"
                   className="secondary-button popup-card__button"

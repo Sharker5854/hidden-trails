@@ -10,6 +10,8 @@ import {
 import { normalizeGeotag, normalizeGeotags } from '../utils/geotags';
 import { getErrorMessage } from '../utils/errors';
 
+const FEED_LAST_VISIT_KEY = 'hidden-trails:last-feed-visit';
+
 export function useGeotags() {
   const [selectedGeotag, setSelectedGeotag] = useState(null);
   const [geotags, setGeotags] = useState([]);
@@ -40,10 +42,12 @@ export function useGeotags() {
     setIsLoading(true);
 
     try {
-      const data = await getFeedRequest();
+      const lastFeedVisit = localStorage.getItem(FEED_LAST_VISIT_KEY);
+      const data = await getFeedRequest(50, lastFeedVisit);
       const normalized = normalizeGeotags(data?.geotags || []);
 
       setGeotags(normalized);
+      localStorage.setItem(FEED_LAST_VISIT_KEY, new Date().toISOString());
       setError('');
 
       return normalized;

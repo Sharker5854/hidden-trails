@@ -6,7 +6,8 @@ from sqlalchemy import func, select
 from app.models.users import User
 from app.models.themes import Theme
 from app.models.geotags import Geotag
-from app.schemas.users import UserCreate, UserUpdateForm
+from app.schemas.geotags import GeotagPublic
+from app.schemas.users import PublicUserProfile, UserCreate, UserMiniPublic, UserUpdateForm
 
 
 class UsersService:
@@ -28,6 +29,78 @@ class UsersService:
         if user:
             await self.recalculate_user_rating(user)
         return user
+
+    async def search_by_nickname(self, nickname: str, current_user_id: int, limit: int = 12) -> List[UserMiniPublic]:
+        query = nickname.strip()
+        if not query:
+            return []
+
+        stmt = (
+            select(User)
+            .where(
+                User.nickname.ilike(f"%{query}%"),
+                User.id != current_user_id,
+            )
+            .order_by(User.nickname)
+            .limit(limit)
+        )
+        result = await self.db.execute(stmt)
+        users = result.scalars().all()
+        return [UserMiniPublic.model_validate(user) for user in users]
+
+    async def get_public_profile(
+        self,
+        user_id: int,
+        current_user_id: int,
+    ) -> PublicUserProfile:
+        stmt = (
+            select(User)
+            .options(
+                selectinload(User.followers),
+                selectinload(User.following),
+                selectinload(User.achievements),
+                selectinload(User.geotags).selectinload(Geotag.themes),
+                selectinload(User.geotags).selectinload(Geotag.author),
+                selectinload(User.geotags).selectinload(Geotag.likers),
+            )
+            .where(User.id == user_id)
+        )
+        result = await self.db.execute(stmt)
+        user = result.scalar_one_or_none()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found.")
+
+        await self.recalculate_user_rating(user)
+
+        return PublicUserProfile(
+            id=user.id,
+            nickname=user.nickname,
+            avatar_url=user.avatar_url,
+            name=user.name,
+            surname=user.surname,
+            rating=user.rating,
+            register_at=user.register_at,
+            followers_count=len(user.followers),
+            following_count=len(user.following),
+            is_followed_by_current_user=any(
+                follower.id == current_user_id for follower in user.followers
+            ),
+            is_current_user=user.id == current_user_id,
+            followers=[UserMiniPublic.model_validate(follower) for follower in user.followers],
+            following=[UserMiniPublic.model_validate(following) for following in user.following],
+            achievements=[
+                {
+                    "id": achievement.id,
+                    "title": achievement.title,
+                    "picture_url": achievement.picture_url,
+                }
+                for achievement in user.achievements
+            ],
+            geotags=[
+                GeotagPublic.from_orm(geotag, current_user_id=current_user_id).model_dump(mode="json")
+                for geotag in sorted(user.geotags, key=lambda item: item.created_at, reverse=True)
+            ],
+        )
 
     async def get_by_id(self, user_id: int) -> Optional[User]:
         stmt = select(User).options(selectinload(User.themes)).where(User.id == user_id)

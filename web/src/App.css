@@ -204,6 +204,15 @@
   margin-bottom: 10px;
 }
 
+.place-card__author-button,
+.popup-card__author {
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
 .place-card__title {
   margin: 0 0 10px;
   font-size: 22px;
@@ -257,6 +266,11 @@
 
 .popup-card__button {
   margin-top: 10px;
+}
+
+.popup-card__author {
+  display: block;
+  margin: 0 0 8px;
 }
 
 .profile-card {
@@ -433,6 +447,13 @@
 .place-details__author-name {
   font-size: 18px;
   font-weight: 600;
+}
+
+.place-details__author-button {
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: var(--color-primary);
 }
 
 .place-details__media {
@@ -1001,6 +1022,94 @@
 
 .profile-achievements {
   margin-bottom: 28px;
+}
+
+.profile-relations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+  margin-bottom: 28px;
+}
+
+.relations-list {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: var(--shadow-soft);
+}
+
+.relations-list summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.relations-list summary span {
+  color: var(--color-text-secondary);
+}
+
+.relations-list__items {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.relations-list__item,
+.user-result {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  color: var(--color-text-primary);
+}
+
+.relations-list__item img,
+.relations-list__item span,
+.user-result img,
+.user-result span {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.relations-list__item span,
+.user-result span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-mint));
+  font-weight: 700;
+}
+
+.user-search-form {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.users-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.user-result div {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-result small {
+  color: var(--color-text-secondary);
 }
 
 .profile-section-header {

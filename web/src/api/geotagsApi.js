@@ -31,8 +31,14 @@ export async function updateGeotagRequest(geotagId, geotagData) {
   return handleApiResponse(response);
 }
 
-export async function getFeedRequest(limit = 50) {
-  const response = await apiRequest(`/geotag/feed?limit=${limit}`, {
+export async function getFeedRequest(limit = 50, followingSince = null) {
+  const params = new URLSearchParams({ limit: String(limit) });
+
+  if (followingSince) {
+    params.set('following_since', followingSince);
+  }
+
+  const response = await apiRequest(`/geotag/feed?${params.toString()}`, {
     method: 'GET',
   });
 

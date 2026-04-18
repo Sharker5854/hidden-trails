@@ -1,8 +1,10 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import PlaceCard from '../components/place/PlaceCard';
+import UserRelations from '../components/profile/UserRelations';
+import { getUserProfileRequest } from '../api/usersApi';
 import { useProfile } from '../hooks/useProfile';
-import { useAchievements } from '../hooks/useAchievements';
 import { resolveAvatarUrl } from '../utils/assets';
+import { normalizeUserProfile } from '../utils/users';
 
 function profileToFormState(profile) {
   return {
@@ -18,40 +20,37 @@ export default function ProfilePage({
   places = [],
   onOpenDetails,
   onOpenOnMap,
+  onOpenUserProfile,
   onProfileLoaded,
 }) {
   const { profile, isLoading, error, loadProfile, updateProfile } = useProfile();
-  const {
-    achievements,
-    isLoading: achievementsLoading,
-    loadAchievements,
-  } = useAchievements();
-
+  const [publicProfile, setPublicProfile] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [avatarFile, setAvatarFile] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
-
   const [formState, setFormState] = useState(() => profileToFormState(null));
 
   useEffect(() => {
     const fetchProfile = async () => {
       const loadedProfile = await loadProfile();
-      if (onProfileLoaded) {
-        onProfileLoaded(loadedProfile);
-      }
+      onProfileLoaded?.(loadedProfile);
     };
 
     fetchProfile();
-    loadAchievements();
-  }, [loadProfile, loadAchievements, onProfileLoaded]);
+  }, [loadProfile, onProfileLoaded]);
 
   useEffect(() => {
     if (!profile) return;
-
-    if (onProfileLoaded) {
-      onProfileLoaded(profile);
-    }
+    onProfileLoaded?.(profile);
   }, [profile, onProfileLoaded]);
+
+  useEffect(() => {
+    if (!profile?.id) return;
+
+    getUserProfileRequest(profile.id)
+      .then((data) => setPublicProfile(normalizeUserProfile(data)))
+      .catch(() => {});
+  }, [profile?.id]);
 
   const avatarLetter = useMemo(() => {
     return (
@@ -61,7 +60,8 @@ export default function ProfilePage({
     );
   }, [formState.nickname, formState.email, isEditing, profile?.nickname, profile?.email]);
   const avatarUrl = resolveAvatarUrl(profile?.avatar_url);
-  const ownPlaces = places.filter((place) => place.author === profile?.nickname);
+  const ownPlaces =
+    publicProfile?.geotags || places.filter((place) => place.author === profile?.nickname);
 
   const handleChange = (field) => (event) => {
     setFormState((prev) => ({
@@ -88,10 +88,7 @@ export default function ProfilePage({
 
     const updatedProfile = await updateProfile(payload);
     setFormState(profileToFormState(updatedProfile));
-
-    if (onProfileLoaded) {
-      onProfileLoaded(updatedProfile);
-    }
+    onProfileLoaded?.(updatedProfile);
 
     setIsEditing(false);
     setAvatarFile(null);
@@ -271,21 +268,31 @@ export default function ProfilePage({
         </div>
       </section>
 
-      <section className="profile-achievements">
-        <div className="profile-section-header">
-          <h2 className="section-title">Достижения</h2>
-          {achievementsLoading ? (
-            <span className="profile-section-header__hint">Загрузка...</span>
-          ) : null}
-        </div>
+      <section className="profile-relations-grid">
+        <UserRelations
+          title="Подписчики"
+          users={publicProfile?.followers || []}
+          emptyText="Подписчиков пока нет"
+          onOpenUserProfile={onOpenUserProfile}
+        />
+        <UserRelations
+          title="Подписки"
+          users={publicProfile?.following || []}
+          emptyText="Подписок пока нет"
+          onOpenUserProfile={onOpenUserProfile}
+        />
+      </section>
 
-        {achievements.length > 0 ? (
+      <section className="profile-achievements">
+        <h2 className="section-title">Достижения</h2>
+
+        {publicProfile?.achievements?.length > 0 ? (
           <div className="achievements-grid">
-            {achievements.map((achievement) => (
+            {publicProfile.achievements.map((achievement) => (
               <article key={achievement.id || achievement.title} className="achievement-card">
-                {achievement.picture_url ? (
+                {achievement.pictureUrl ? (
                   <img
-                    src={achievement.picture_url}
+                    src={achievement.pictureUrl}
                     alt={achievement.title}
                     className="achievement-card__image"
                   />
@@ -314,6 +321,7 @@ export default function ProfilePage({
                 place={place}
                 onOpenDetails={onOpenDetails}
                 onOpenOnMap={onOpenOnMap}
+                onOpenUserProfile={onOpenUserProfile}
               />
             ))}
           </div>
@@ -324,4 +332,3 @@ export default function ProfilePage({
     </main>
   );
 }
-

@@ -33,6 +33,7 @@ export default function PlaceDetailsPage({
   place,
   onOpenOnMap,
   onEditPlace,
+  onOpenUserProfile,
   onPlaceUpdated,
 }) {
   const [commentText, setCommentText] = useState('');
@@ -168,7 +169,13 @@ export default function PlaceDetailsPage({
 
           <div>
             <div className="place-details__author-label">Автор</div>
-            <div className="place-details__author-name">@{safePlace.author}</div>
+            <button
+              type="button"
+              className="place-details__author-name place-details__author-button"
+              onClick={() => onOpenUserProfile?.(place?.authorId)}
+            >
+              @{safePlace.author}
+            </button>
           </div>
         </div>
 

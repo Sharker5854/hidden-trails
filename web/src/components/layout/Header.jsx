@@ -5,6 +5,7 @@ export default function Header({ currentPage, onNavigate, user }) {
   const items = [
     { key: 'feed', label: 'Лента' },
     { key: 'map', label: 'Карта' },
+    { key: 'users-search', label: 'Люди' },
   ];
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
