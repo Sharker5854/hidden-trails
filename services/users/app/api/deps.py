@@ -16,6 +16,7 @@ from app.services.themes import ThemesService
 from app.services.geotags import GeotagsService
 from app.services.comments import CommentsService
 from app.services.routes import RoutesService
+from app.services.messages import MessagesService
 from ..db.session import AsyncSessionLocal
 
 
@@ -167,6 +168,12 @@ async def get_routes_service(
         db: AsyncSession = Depends(get_db)
     ) -> RoutesService:
     return RoutesService(db)
+
+
+async def get_messages_service(
+        db: AsyncSession = Depends(get_db)
+    ) -> MessagesService:
+    return MessagesService(db)
 
 
 

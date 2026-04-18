@@ -14,6 +14,7 @@ export default function UserProfilePage({
   onOpenDetails,
   onOpenOnMap,
   onOpenUserProfile,
+  onOpenMessages,
 }) {
   const [profile, setProfile] = useState(null);
   const [error, setError] = useState('');
@@ -107,14 +108,23 @@ export default function UserProfilePage({
             </div>
 
             {!profile.isCurrentUser ? (
-              <button
-                type="button"
-                className="primary-button"
-                onClick={handleFollowToggle}
-                disabled={isFollowSubmitting}
-              >
-                {profile.isFollowedByCurrentUser ? 'Отписаться' : 'Подписаться'}
-              </button>
+              <div className="profile-card__actions">
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={handleFollowToggle}
+                  disabled={isFollowSubmitting}
+                >
+                  {profile.isFollowedByCurrentUser ? 'Отписаться' : 'Подписаться'}
+                </button>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => onOpenMessages?.(profile.id)}
+                >
+                  Написать
+                </button>
+              </div>
             ) : null}
           </div>
 

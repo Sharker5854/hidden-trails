@@ -6,6 +6,7 @@ export default function Header({ currentPage, onNavigate, user }) {
     { key: 'feed', label: 'Лента' },
     { key: 'map', label: 'Карта' },
     { key: 'users-search', label: 'Люди' },
+    { key: 'messages', label: 'Сообщения' },
   ];
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -39,7 +40,7 @@ export default function Header({ currentPage, onNavigate, user }) {
     user?.email?.trim()?.charAt(0)?.toUpperCase() ||
     'U';
 
-  const avatarUrl = resolveAvatarUrl(user?.avatar_url);
+  const avatarUrl = user?.avatarUrl || resolveAvatarUrl(user?.avatar_url);
 
   return (
     <header className="header">

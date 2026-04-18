@@ -12,6 +12,7 @@ import CreateGeotagPage from './pages/CreateGeotagPage';
 import EditGeotagPage from './pages/EditGeotagPage';
 import UserSearchPage from './pages/UserSearchPage';
 import UserProfilePage from './pages/UserProfilePage';
+import MessagesPage from './pages/MessagesPage';
 import { useAuth } from './hooks/useAuth';
 import { useGeotags } from './hooks/useGeotags';
 
@@ -38,6 +39,7 @@ export default function App() {
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [mapFocusedPlace, setMapFocusedPlace] = useState(null);
   const [profileUser, setProfileUser] = useState(null);
+  const [messageRecipientId, setMessageRecipientId] = useState(null);
 
   const activeUser = profileUser || user;
 
@@ -88,12 +90,17 @@ export default function App() {
     setSelectedUserId(null);
     setMapFocusedPlace(null);
     setProfileUser(null);
+    setMessageRecipientId(null);
   };
 
   const handleNavigate = (page) => {
     if (page === 'logout') {
       handleLogout();
       return;
+    }
+
+    if (page === 'messages') {
+      setMessageRecipientId(null);
     }
 
     setCurrentPage(page);
@@ -138,6 +145,11 @@ export default function App() {
 
     setSelectedUserId(userId);
     setCurrentPage('user-profile');
+  };
+
+  const handleOpenMessages = (userId = null) => {
+    setMessageRecipientId(userId);
+    setCurrentPage('messages');
   };
 
   const renderFeed = () => (
@@ -207,6 +219,13 @@ export default function App() {
         );
       case 'users-search':
         return <UserSearchPage onOpenUserProfile={handleOpenUserProfile} />;
+      case 'messages':
+        return (
+          <MessagesPage
+            initialRecipientId={messageRecipientId}
+            onOpenUserProfile={handleOpenUserProfile}
+          />
+        );
       case 'user-profile':
         return selectedUserId ? (
           <UserProfilePage
@@ -214,6 +233,7 @@ export default function App() {
             onOpenDetails={handleOpenDetails}
             onOpenOnMap={handleOpenOnMap}
             onOpenUserProfile={handleOpenUserProfile}
+            onOpenMessages={handleOpenMessages}
           />
         ) : (
           renderFeed()
