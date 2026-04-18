@@ -46,6 +46,36 @@ templates = Jinja2Templates(directory="app/templates")
 
 MEDIA_DIR = settings.base_dir / "static" / "media" / "geotag-media"
 MEDIA_DIR.mkdir(parents=True, exist_ok=True)
+MAX_MEDIA_FILES = 7
+ALLOWED_MEDIA_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+
+
+async def save_geotag_media_files(media_files: Optional[List[UploadFile]], title: str) -> List[str]:
+    uploaded_files = [media_file for media_file in media_files or [] if media_file.filename]
+
+    if len(uploaded_files) > MAX_MEDIA_FILES:
+        raise HTTPException(status_code=400, detail="Можно прикрепить максимум 7 фото.")
+
+    media_file_paths = []
+    for media_file in uploaded_files:
+        if media_file.content_type not in ALLOWED_MEDIA_TYPES:
+            raise HTTPException(status_code=400, detail="Можно прикреплять только фото.")
+
+        ext = Path(media_file.filename).suffix or ".jpg"
+        safe_title = translit(
+            title.lower(),
+            language_code='ru',
+            reversed=True
+        ).replace(" ", "_")[:50]
+        filename = f"geotag_{safe_title}_{uuid.uuid4().hex}{ext}"
+        disk_path = MEDIA_DIR / filename
+
+        contents = await media_file.read()
+        disk_path.write_bytes(contents)
+
+        media_file_paths.append(filename)
+
+    return media_file_paths
 
 
 
@@ -54,8 +84,13 @@ async def get_geotag(
     request: Request,
     geotag_id: int,
     geotags_svc: GeotagsService = Depends(get_geotags_service),
+    current_user: User = Depends(get_current_user),
 ):
-    geotag = await geotags_svc.get_geotag_public(geotag_id, increment_view=True)
+    geotag = await geotags_svc.get_geotag_public(
+        geotag_id,
+        increment_view=True,
+        current_user_id=current_user.id,
+    )
     if not geotag:
         raise HTTPException(status_code=404, detail="Геометка не найдена")
     return geotag
@@ -112,22 +147,7 @@ async def create_geotag_post(
         themes = await themes_svc.get_all_themes()
         raise HTTPException(status_code=400, detail=str(e))
 
-    media_file_paths = []
-    for media_file in media_files or []:
-        if media_file.filename:
-            ext = Path(media_file.filename).suffix or ".jpg"
-            safe_title = translit(
-                form_data['title'].lower(), 
-                language_code='ru', 
-                reversed=True
-            ).replace(" ", "_")[:50]
-            filename = f"geotag_{safe_title}_{uuid.uuid4().hex}{ext}"
-            disk_path = MEDIA_DIR / filename
-            
-            contents = await media_file.read()
-            disk_path.write_bytes(contents)
-            
-            media_file_paths.append(filename)
+    media_file_paths = await save_geotag_media_files(media_files, form_data["title"])
 
     
     try:
@@ -141,7 +161,7 @@ async def create_geotag_post(
         raise HTTPException(status_code=400, detail=str(e))
     
     geotag = await geotags_svc.get_by_id(geotag.id)
-    return GeotagPublic.from_orm(geotag)
+    return GeotagPublic.from_orm(geotag, current_user_id=current_user.id)
 
 
 
@@ -223,23 +243,11 @@ async def update_geotag(
 
     new_media_paths = []
     
-    for media_file in media_files or []:
-        if media_file.filename:
-            ext = Path(media_file.filename).suffix or ".png"
-            safe_title = translit(
-                form_data['title'].lower(), 
-                language_code='ru', 
-                reversed=True
-            ).replace(" ", "_")[:50]
-            filename = f"geotag_{safe_title}_{uuid.uuid4().hex}{ext}"
-            disk_path = MEDIA_DIR / filename
-            
-            contents = await media_file.read()
-            disk_path.write_bytes(contents)
-            
-            new_media_paths.append(f"{filename}")
+    new_media_paths = await save_geotag_media_files(media_files, form_data["title"])
     
     updated_media = current_media + new_media_paths
+    if len(updated_media) > MAX_MEDIA_FILES:
+        raise HTTPException(status_code=400, detail="Можно прикрепить максимум 7 фото.")
     
     try:
         updated_geotag = await geotags_svc.update_geotag(
@@ -261,7 +269,7 @@ async def update_geotag(
         )
     
     updated_geotag = await geotags_svc.get_by_id(updated_geotag.id)
-    return GeotagPublic.from_orm(updated_geotag)
+    return GeotagPublic.from_orm(updated_geotag, current_user_id=current_user.id)
 
 
 
@@ -308,7 +316,7 @@ async def get_feed(
     )
     
     public_geotags: List[GeotagPublic] = jsonable_encoder([
-        GeotagPublic.from_orm(gt)
+        GeotagPublic.from_orm(gt, current_user_id=user.id)
         for gt in feed
     ])
 

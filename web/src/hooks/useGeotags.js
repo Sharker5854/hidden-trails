@@ -3,6 +3,8 @@ import {
   createGeotagRequest,
   getFeedRequest,
   getGeotagByIdRequest,
+  likeGeotagRequest,
+  unlikeGeotagRequest,
   updateGeotagRequest,
 } from '../api/geotagsApi';
 import { normalizeGeotag, normalizeGeotags } from '../utils/geotags';
@@ -94,6 +96,42 @@ export function useGeotags() {
     }
   }, []);
 
+  const likeGeotag = useCallback(async (geotagId) => {
+    const data = await likeGeotagRequest(geotagId);
+
+    setGeotags((prev) =>
+      prev.map((geotag) =>
+        geotag.id === geotagId
+          ? {
+              ...geotag,
+              likes: data.total_likes ?? geotag.likes + 1,
+              likedByCurrentUser: true,
+            }
+          : geotag
+      )
+    );
+
+    return data;
+  }, []);
+
+  const unlikeGeotag = useCallback(async (geotagId) => {
+    const data = await unlikeGeotagRequest(geotagId);
+
+    setGeotags((prev) =>
+      prev.map((geotag) =>
+        geotag.id === geotagId
+          ? {
+              ...geotag,
+              likes: data.total_likes ?? Math.max(0, geotag.likes - 1),
+              likedByCurrentUser: false,
+            }
+          : geotag
+      )
+    );
+
+    return data;
+  }, []);
+
   return {
     selectedGeotag,
     geotags,
@@ -102,6 +140,8 @@ export function useGeotags() {
     loadFeed,
     loadGeotagById,
     createGeotag,
+    likeGeotag,
+    unlikeGeotag,
     updateGeotag,
   };
 }

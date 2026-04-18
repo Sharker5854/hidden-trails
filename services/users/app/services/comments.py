@@ -53,7 +53,7 @@ class CommentsService:
             text=text,
             author_id=author_id,
             geotag_id=geotag_id,
-            parent_id=parent.id
+            parent_id=parent.id if parent else None
         )
         self.db.add(comment)
         await self.db.commit()
@@ -67,6 +67,11 @@ class CommentsService:
             "geotag_id": comment.geotag_id,
             "parent_id": comment.parent_id,
             "likes_count": comment.likes_count,
+            "author": {
+                "id": comment.author.id,
+                "nickname": comment.author.nickname,
+            },
+            "replies": [],
         }
     
 
@@ -132,7 +137,10 @@ class CommentsService:
                         "id": r.id,
                         "text": r.text,
                         "created_at": r.created_at,
-                        "author": {"id": r.author.id, "nickname": r.author.nickname}
+                        "author": {"id": r.author.id, "nickname": r.author.nickname},
+                        "parent_id": r.parent_id,
+                        "likes_count": r.likes_count,
+                        "replies": [],
                     }
                     for r in c.replies
                 ]

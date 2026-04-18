@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import Map, { Marker, NavigationControl } from 'react-map-gl/maplibre';
 
+const MAX_MEDIA_FILES = 7;
+
 const DEFAULT_LOCATION = {
   latitude: 55.751244,
   longitude: 37.618423,
@@ -41,6 +43,7 @@ export default function GeotagForm({
   const [tips, setTips] = useState(initialFormValues.tips);
   const [themeIds, setThemeIds] = useState(initialFormValues.themeIds);
   const [mediaFiles, setMediaFiles] = useState([]);
+  const [mediaError, setMediaError] = useState('');
   const [activeMediaIndex, setActiveMediaIndex] = useState(0);
 
   const mediaPreviews = useMemo(
@@ -73,6 +76,11 @@ export default function GeotagForm({
 
   const handleSubmit = (event) => {
     event.preventDefault();
+
+    if (mediaFiles.length > MAX_MEDIA_FILES) {
+      setMediaError(`Можно прикрепить максимум ${MAX_MEDIA_FILES} фото.`);
+      return;
+    }
 
     onSubmit({
       title,
@@ -216,18 +224,31 @@ export default function GeotagForm({
       </div>
 
       <label className="auth-form__label">
-        Медиафайлы
+        Фото
         <input
           className="auth-form__input"
           type="file"
           multiple
-          accept="image/*,video/*"
+          accept="image/*"
           onChange={(event) => {
             const files = Array.from(event.target.files || []);
-            setMediaFiles(files);
+            const imageFiles = files.filter((file) => file.type.startsWith('image/'));
+
+            if (files.length > MAX_MEDIA_FILES) {
+              setMediaError(`Можно прикрепить максимум ${MAX_MEDIA_FILES} фото.`);
+              setMediaFiles(imageFiles.slice(0, MAX_MEDIA_FILES));
+            } else if (imageFiles.length !== files.length) {
+              setMediaError('Можно прикреплять только фото.');
+              setMediaFiles(imageFiles);
+            } else {
+              setMediaError('');
+              setMediaFiles(imageFiles);
+            }
+
             setActiveMediaIndex(0);
           }}
         />
+        <p className="geotag-form__hint">Можно выбрать до 7 фото.</p>
       </label>
 
       {mediaPreviews.length > 0 ? (
@@ -270,6 +291,7 @@ export default function GeotagForm({
         </section>
       ) : null}
 
+      {mediaError ? <p className="auth-form__error">{mediaError}</p> : null}
       {formError ? <p className="auth-form__error">{formError}</p> : null}
 
       <div className="geotag-form__actions">

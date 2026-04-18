@@ -49,7 +49,8 @@ class GeotagsService:
             select(Geotag)
             .options(
                 selectinload(Geotag.themes),
-                selectinload(Geotag.author)
+                selectinload(Geotag.author),
+                selectinload(Geotag.likers),
             )
             .where(Geotag.id == geotag_id)
         )
@@ -100,6 +101,7 @@ class GeotagsService:
         self,
         geotag_id: int,
         increment_view: bool = False,
+        current_user_id: Optional[int] = None,
     ) -> Optional[GeotagPublic]:
         geotag = await self.get_by_id(geotag_id)
         if not geotag:
@@ -109,9 +111,9 @@ class GeotagsService:
             geotag.views_count += 1
             await UsersService(self.db).recalculate_user_rating(geotag.author_id)
             await self.db.commit()
-            await self.db.refresh(geotag)
+            geotag = await self.get_by_id(geotag_id)
 
-        return GeotagPublic.from_orm(geotag)
+        return GeotagPublic.from_orm(geotag, current_user_id=current_user_id)
     
 
     async def update_geotag(
@@ -286,7 +288,8 @@ class GeotagsService:
         stmt = select(Geotag).options(
             selectinload(Geotag.author),
             selectinload(Geotag.themes),
-            selectinload(Geotag.comments)
+            selectinload(Geotag.comments),
+            selectinload(Geotag.likers),
         ).order_by(
             desc((main_priority * 1_000_000) + (theme_bonus * 10_000) + own_articles_penalty),
             Geotag.created_at.desc(),

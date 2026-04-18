@@ -475,6 +475,26 @@
   font-weight: 600;
 }
 
+.like-button {
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  color: var(--color-text-secondary);
+  background: var(--color-surface-muted);
+  font-weight: 700;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.like-button:hover {
+  transform: translateY(-1px);
+  color: #b91c1c;
+}
+
+.like-button--active {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
 .place-details__content {
   background: var(--color-surface);
   border-radius: var(--radius-lg);
@@ -523,6 +543,20 @@
 .comment-card__text {
   margin: 0;
   color: var(--color-text-secondary);
+}
+
+.comment-card__replies {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+  padding-left: 14px;
+  border-left: 2px solid var(--color-border);
+}
+
+.comment-card--reply {
+  box-shadow: none;
+  padding: 12px 14px;
 }
 
 .comments-section__empty {

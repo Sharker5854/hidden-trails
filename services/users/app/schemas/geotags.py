@@ -21,9 +21,10 @@ class GeotagPublic(BaseModel):
     tips: Optional[str]
     likes_count: int
     views_count: int
+    liked_by_current_user: bool = False
     
     @classmethod
-    def from_orm(cls, geotag: Geotag) -> "GeotagPublic":
+    def from_orm(cls, geotag: Geotag, current_user_id: Optional[int] = None) -> "GeotagPublic":
         """Кастомная сериализация SQLAlchemy."""
         media_files = []
         raw_media = getattr(geotag, 'media_files', [])
@@ -33,6 +34,8 @@ class GeotagPublic(BaseModel):
                     media_files.extend(item)
                 else:
                     media_files.append(item)
+
+        likers = getattr(geotag, 'likers', [])
 
         return cls(
             id=geotag.id,
@@ -54,6 +57,10 @@ class GeotagPublic(BaseModel):
             tips=geotag.tips,
             likes_count=geotag.likes_count,
             views_count=geotag.views_count,
+            liked_by_current_user=(
+                current_user_id is not None
+                and any(user.id == current_user_id for user in likers)
+            ),
         )
 
 

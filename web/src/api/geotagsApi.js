@@ -38,3 +38,19 @@ export async function getFeedRequest(limit = 50) {
 
   return handleApiResponse(response);
 }
+
+export async function likeGeotagRequest(geotagId) {
+  const response = await apiRequest(`/geotag/like/${geotagId}`, {
+    method: 'POST',
+  });
+
+  return handleApiResponse(response);
+}
+
+export async function unlikeGeotagRequest(geotagId) {
+  const response = await apiRequest(`/geotag/unlike/${geotagId}`, {
+    method: 'POST',
+  });
+
+  return handleApiResponse(response);
+}

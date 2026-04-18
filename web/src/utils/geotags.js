@@ -43,6 +43,8 @@ export function normalizeGeotag(rawGeotag) {
       rawGeotag.author?.avatar_url ?? rawGeotag.author_avatar_url ?? null
     ),
     likes: rawGeotag.likes_count ?? rawGeotag.likes ?? 0,
+    likedByCurrentUser:
+      rawGeotag.liked_by_current_user ?? rawGeotag.likedByCurrentUser ?? false,
     views: rawGeotag.views_count ?? rawGeotag.views ?? 0,
     comments: rawGeotag.comments ?? [],
   };

@@ -192,6 +192,10 @@ export default function App() {
             place={selectedPlace}
             onOpenOnMap={handleOpenOnMap}
             onEditPlace={handleOpenEditGeotag}
+            onPlaceUpdated={(updatedPlace) => {
+              setSelectedPlace(updatedPlace);
+              upsertPlace(updatedPlace);
+            }}
           />
         ) : (
           renderFeed()

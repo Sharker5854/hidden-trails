@@ -1,12 +1,76 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import {
+  createCommentRequest,
+  getCommentsRequest,
+} from '../api/commentsApi';
+import {
+  likeGeotagRequest,
+  unlikeGeotagRequest,
+} from '../api/geotagsApi';
+import { getErrorMessage } from '../utils/errors';
 
 function isVideoUrl(url) {
   return /\.(mp4|webm|ogg|mov)$/i.test(url || '');
 }
 
-export default function PlaceDetailsPage({ place, onOpenOnMap, onEditPlace }) {
+function normalizeComment(comment) {
+  return {
+    id: comment.id,
+    text: comment.text || '',
+    author:
+      comment.author?.nickname ||
+      comment.author ||
+      comment.author_nickname ||
+      'unknown',
+    likes: comment.likes_count ?? comment.likes ?? 0,
+    replies: Array.isArray(comment.replies)
+      ? comment.replies.map(normalizeComment)
+      : [],
+  };
+}
+
+export default function PlaceDetailsPage({
+  place,
+  onOpenOnMap,
+  onEditPlace,
+  onPlaceUpdated,
+}) {
   const [commentText, setCommentText] = useState('');
+  const [comments, setComments] = useState([]);
+  const [commentsError, setCommentsError] = useState('');
+  const [isCommentSubmitting, setIsCommentSubmitting] = useState(false);
   const [activeMediaIndex, setActiveMediaIndex] = useState(0);
+  const [likes, setLikes] = useState(place?.likes || 0);
+  const [isLiked, setIsLiked] = useState(Boolean(place?.likedByCurrentUser));
+  const [likeError, setLikeError] = useState('');
+  const [isLikeSubmitting, setIsLikeSubmitting] = useState(false);
+
+  useEffect(() => {
+    setLikes(place?.likes || 0);
+    setIsLiked(Boolean(place?.likedByCurrentUser));
+    setActiveMediaIndex(0);
+  }, [place?.id, place?.likes, place?.likedByCurrentUser]);
+
+  useEffect(() => {
+    if (!place?.id) return;
+
+    let isMounted = true;
+    setCommentsError('');
+
+    getCommentsRequest(place.id)
+      .then((data) => {
+        if (!isMounted) return;
+        setComments((data?.comments || []).map(normalizeComment));
+      })
+      .catch((error) => {
+        if (!isMounted) return;
+        setCommentsError(getErrorMessage(error));
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [place?.id]);
 
   const mediaFiles = Array.isArray(place?.mediaFiles)
     ? place.mediaFiles.filter(Boolean)
@@ -17,9 +81,7 @@ export default function PlaceDetailsPage({ place, onOpenOnMap, onEditPlace }) {
     image: place?.image || mediaFiles[0] || '',
     author: place?.author || 'unknown',
     authorAvatar: place?.authorAvatar || null,
-    likes: place?.likes || 0,
     views: place?.views || 0,
-    comments: place?.comments || [],
     warnings: place?.warnings || '',
     tips: place?.tips || '',
     themes: Array.isArray(place?.themes) ? place.themes : [],
@@ -30,9 +92,62 @@ export default function PlaceDetailsPage({ place, onOpenOnMap, onEditPlace }) {
     safePlace.mediaFiles[activeMediaIndex] || safePlace.image || null;
   const hasManyMedia = safePlace.mediaFiles.length > 1;
 
-  const handleSubmit = (event) => {
+  const updatePlaceLikes = (nextLikes, nextIsLiked) => {
+    setLikes(nextLikes);
+    setIsLiked(nextIsLiked);
+
+    if (onPlaceUpdated) {
+      onPlaceUpdated({
+        ...place,
+        likes: nextLikes,
+        likedByCurrentUser: nextIsLiked,
+      });
+    }
+  };
+
+  const handleLikeToggle = async () => {
+    if (!place?.id || isLikeSubmitting) return;
+
+    setIsLikeSubmitting(true);
+    setLikeError('');
+
+    try {
+      const data = isLiked
+        ? await unlikeGeotagRequest(place.id)
+        : await likeGeotagRequest(place.id);
+      const nextLikes =
+        data.total_likes ?? (isLiked ? Math.max(0, likes - 1) : likes + 1);
+
+      updatePlaceLikes(nextLikes, !isLiked);
+    } catch (error) {
+      setLikeError(getErrorMessage(error));
+    } finally {
+      setIsLikeSubmitting(false);
+    }
+  };
+
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    setCommentText('');
+
+    const text = commentText.trim();
+    if (!text || !place?.id) return;
+
+    setIsCommentSubmitting(true);
+    setCommentsError('');
+
+    try {
+      const createdComment = await createCommentRequest({
+        geotag_id: place.id,
+        text,
+      });
+
+      setComments((prev) => [normalizeComment(createdComment), ...prev]);
+      setCommentText('');
+    } catch (error) {
+      setCommentsError(getErrorMessage(error));
+    } finally {
+      setIsCommentSubmitting(false);
+    }
   };
 
   return (
@@ -71,7 +186,7 @@ export default function PlaceDetailsPage({ place, onOpenOnMap, onEditPlace }) {
               )
             ) : (
               <div className="place-details__image place-details__image--empty">
-                Нет медиа
+                Нет фото
               </div>
             )}
           </div>
@@ -107,9 +222,18 @@ export default function PlaceDetailsPage({ place, onOpenOnMap, onEditPlace }) {
           ) : null}
 
           <div className="place-details__stats">
-            <div className="place-details__stat">♥ {safePlace.likes}</div>
+            <button
+              type="button"
+              className={`like-button ${isLiked ? 'like-button--active' : ''}`}
+              onClick={handleLikeToggle}
+              disabled={isLikeSubmitting}
+            >
+              ♥ {likes}
+            </button>
             <div className="place-details__stat">👁 {safePlace.views}</div>
           </div>
+
+          {likeError ? <p className="auth-form__error">{likeError}</p> : null}
         </div>
 
         <div className="place-details__content">
@@ -163,12 +287,26 @@ export default function PlaceDetailsPage({ place, onOpenOnMap, onEditPlace }) {
         <section className="comments-section">
           <h2 className="section-title">Комментарии</h2>
 
-          {safePlace.comments.length > 0 ? (
+          {commentsError ? (
+            <p className="auth-form__error">{commentsError}</p>
+          ) : null}
+
+          {comments.length > 0 ? (
             <div className="comments-list">
-              {safePlace.comments.map((comment) => (
+              {comments.map((comment) => (
                 <article key={comment.id} className="comment-card">
                   <div className="comment-card__author">@{comment.author}</div>
                   <p className="comment-card__text">{comment.text}</p>
+                  {comment.replies.length > 0 ? (
+                    <div className="comment-card__replies">
+                      {comment.replies.map((reply) => (
+                        <article key={reply.id} className="comment-card comment-card--reply">
+                          <div className="comment-card__author">@{reply.author}</div>
+                          <p className="comment-card__text">{reply.text}</p>
+                        </article>
+                      ))}
+                    </div>
+                  ) : null}
                 </article>
               ))}
             </div>
@@ -184,10 +322,15 @@ export default function PlaceDetailsPage({ place, onOpenOnMap, onEditPlace }) {
               placeholder="Напиши комментарий..."
               value={commentText}
               onChange={(event) => setCommentText(event.target.value)}
+              required
             />
 
-            <button type="submit" className="primary-button comment-form__button">
-              Отправить
+            <button
+              type="submit"
+              className="primary-button comment-form__button"
+              disabled={isCommentSubmitting}
+            >
+              {isCommentSubmitting ? 'Отправляем...' : 'Отправить'}
             </button>
           </form>
         </section>
