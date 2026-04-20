@@ -49,16 +49,16 @@ export async function registerRequest({
   return handleApiResponse(response);
 }
 
-export async function logoutRequest() {
-  const response = await apiRequest('/auth/logout', {
+export async function meRequest() {
+  const response = await apiRequest('/auth/me', {
     method: 'GET',
   });
 
   return handleApiResponse(response);
 }
 
-export async function meRequest() {
-  const response = await apiRequest('/auth/me', {
+export async function sessionRequest() {
+  const response = await apiRequest('/auth/session', {
     method: 'GET',
   });
 
@@ -68,6 +68,14 @@ export async function meRequest() {
 export async function refreshRequest() {
   const response = await apiRequest('/auth/refresh', {
     method: 'POST',
+  });
+
+  return handleApiResponse(response);
+}
+
+export async function logoutRequest() {
+  const response = await apiRequest('/auth/logout', {
+    method: 'GET',
   });
 
   return handleApiResponse(response);

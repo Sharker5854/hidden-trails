@@ -5,6 +5,17 @@ from sqlalchemy import select
 from app.models.themes import Theme
 from app.schemas.themes import ThemesCreateUpdate, ThemePublic
 
+DEFAULT_THEME_NAMES = [
+    "Природа",
+    "Город",
+    "История",
+    "Смотровая",
+    "Вода",
+    "Маршрут",
+    "Тишина",
+    "Фото",
+]
+
 
 class ThemesService:
     def __init__(self, db: AsyncSession):
@@ -24,6 +35,14 @@ class ThemesService:
         stmt = select(Theme).order_by(Theme.name)
         result = await self.db.execute(stmt)
         themes = result.scalars().all()
+
+        if not themes:
+            self.db.add_all([Theme(name=name) for name in DEFAULT_THEME_NAMES])
+            await self.db.commit()
+
+            result = await self.db.execute(stmt)
+            themes = result.scalars().all()
+
         return [ThemePublic.model_validate(a) for a in themes]
 
 

@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
+import { resolveAvatarUrl } from '../../utils/assets';
 
 export default function Header({ currentPage, onNavigate, user }) {
   const items = [
     { key: 'feed', label: 'Лента' },
     { key: 'map', label: 'Карта' },
+    { key: 'users-search', label: 'Люди' },
+    { key: 'messages', label: 'Сообщения' },
   ];
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -37,7 +40,7 @@ export default function Header({ currentPage, onNavigate, user }) {
     user?.email?.trim()?.charAt(0)?.toUpperCase() ||
     'U';
 
-  const avatarUrl = user?.avatar_url || null;
+  const avatarUrl = user?.avatarUrl || resolveAvatarUrl(user?.avatar_url);
 
   return (
     <header className="header">

@@ -1,23 +1,49 @@
 import { useEffect, useRef, useState } from 'react';
-import Map, { Marker, Popup, NavigationControl } from 'react-map-gl/maplibre';
-import { mockPlaces } from '../data/mockPlaces';
+import Map, { Marker, NavigationControl, Popup } from 'react-map-gl/maplibre';
 
-export default function MapPage({ focusedPlace }) {
-  const [selectedPlace, setSelectedPlace] = useState(focusedPlace || null);
+const MAP_DESCRIPTION_LIMIT = 420;
+
+function hasValidLocation(place) {
+  return Number.isFinite(Number(place?.latitude)) && Number.isFinite(Number(place?.longitude));
+}
+
+function getPopupDescription(place) {
+  const text = place?.fullDescription || place?.description || '';
+
+  if (text.length <= MAP_DESCRIPTION_LIMIT) {
+    return text;
+  }
+
+  return `${text.slice(0, MAP_DESCRIPTION_LIMIT).trim()}...`;
+}
+
+export default function MapPage({
+  places = [],
+  focusedPlace,
+  onOpenDetails,
+  onOpenUserProfile,
+}) {
+  const [selectedPlace, setSelectedPlace] = useState(null);
+  const [dismissedFocusedPlaceId, setDismissedFocusedPlaceId] = useState(null);
   const mapRef = useRef(null);
 
-  useEffect(() => {
-    if (!focusedPlace || !mapRef.current) return;
+  const focusedPlaceVisible =
+    focusedPlace?.id === dismissedFocusedPlaceId ? null : focusedPlace;
+  const visiblePlace = selectedPlace || focusedPlaceVisible;
 
-    setSelectedPlace(focusedPlace);
+  useEffect(() => {
+    if (!focusedPlace || !mapRef.current || !hasValidLocation(focusedPlace)) return;
 
     mapRef.current.flyTo({
-      center: [focusedPlace.longitude, focusedPlace.latitude],
+      center: [Number(focusedPlace.longitude), Number(focusedPlace.latitude)],
       zoom: 14,
-      duration: 1800,
+      duration: 1400,
       essential: true,
     });
   }, [focusedPlace]);
+
+  const visiblePlaces = places.filter(hasValidLocation);
+  const selectedMarkerId = visiblePlace?.id;
 
   return (
     <main className="page">
@@ -39,42 +65,81 @@ export default function MapPage({ focusedPlace }) {
         >
           <NavigationControl position="top-right" />
 
-          {mockPlaces.map((place) => (
+          {visiblePlaces.map((place) => (
             <Marker
               key={place.id}
-              longitude={place.longitude}
-              latitude={place.latitude}
+              longitude={Number(place.longitude)}
+              latitude={Number(place.latitude)}
               anchor="bottom"
             >
               <button
                 type="button"
-                className="marker"
-                onClick={(e) => {
-                  e.stopPropagation();
+                className={`marker ${
+                  place.id === selectedMarkerId ? 'marker--active' : ''
+                }`}
+                aria-label={`Открыть ${place.title}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setDismissedFocusedPlaceId(null);
                   setSelectedPlace(place);
                 }}
-              >
-                📍
-              </button>
+              />
             </Marker>
           ))}
 
-          {selectedPlace && (
+          {visiblePlace && hasValidLocation(visiblePlace) ? (
             <Popup
-              longitude={selectedPlace.longitude}
-              latitude={selectedPlace.latitude}
+              key={`${visiblePlace.id}-${selectedPlace ? 'selected' : 'focused'}`}
+              longitude={Number(visiblePlace.longitude)}
+              latitude={Number(visiblePlace.latitude)}
               anchor="bottom"
-              offset={20}
+              offset={28}
               closeOnClick={false}
-              onClose={() => setSelectedPlace(null)}
+              maxWidth="340px"
+              onClose={() => {
+                setSelectedPlace(null);
+                if (visiblePlace.id === focusedPlace?.id) {
+                  setDismissedFocusedPlaceId(visiblePlace.id);
+                }
+              }}
             >
               <div className="popup-card">
-                <h3>{selectedPlace.title}</h3>
-                <p>{selectedPlace.description}</p>
-                <span>@{selectedPlace.author}</span>
+                {visiblePlace.image ? (
+                  <img
+                    className="popup-card__image"
+                    src={visiblePlace.image}
+                    alt={visiblePlace.title}
+                  />
+                ) : (
+                  <div className="popup-card__image popup-card__image--empty">
+                    {visiblePlace.title?.charAt(0)?.toUpperCase() || 'H'}
+                  </div>
+                )}
+
+                <div className="popup-card__body">
+                  <h3>{visiblePlace.title}</h3>
+                  <p>{getPopupDescription(visiblePlace)}</p>
+                </div>
+
+                <div className="popup-card__footer">
+                  <button
+                    type="button"
+                    className="popup-card__author"
+                    onClick={() => onOpenUserProfile?.(visiblePlace.authorId)}
+                  >
+                    @{visiblePlace.author}
+                  </button>
+                  <button
+                    type="button"
+                    className="primary-button popup-card__button"
+                    onClick={() => onOpenDetails(visiblePlace)}
+                  >
+                    Подробнее
+                  </button>
+                </div>
               </div>
             </Popup>
-          )}
+          ) : null}
         </Map>
       </div>
     </main>

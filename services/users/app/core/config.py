@@ -1,5 +1,6 @@
-import os
 from pathlib import Path
+from typing import Optional
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import DirectoryPath
 
@@ -29,7 +30,7 @@ class Settings(BaseSettings):
     reset_token_expire_minutes: int
 
     # Integrations | Geoapify
-    geoapify_api_key: str
+    geoapify_api_key: Optional[str] = None
 
     
     model_config = SettingsConfigDict(

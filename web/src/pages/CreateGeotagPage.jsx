@@ -1,25 +1,29 @@
 import { useEffect, useState } from 'react';
 import GeotagForm from '../components/forms/GeotagForm';
-import { useThemes } from '../hooks/useThemes';
 import { useGeotags } from '../hooks/useGeotags';
+import { useThemes } from '../hooks/useThemes';
 
 export default function CreateGeotagPage({ onCreated, onCancel }) {
-  const { themes, isLoading: themesLoading, loadThemes } = useThemes();
+  const { themes, isLoading: themesLoading, error: themesError, loadThemes } = useThemes();
   const { createGeotag, isLoading, error } = useGeotags();
   const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
-    loadThemes();
+    loadThemes().catch(() => {});
   }, [loadThemes]);
 
   const handleSubmit = async (data) => {
     setSuccessMessage('');
 
-    const createdGeotag = await createGeotag(data);
-    setSuccessMessage('Место успешно создано');
+    try {
+      const createdGeotag = await createGeotag(data);
+      setSuccessMessage('Карточка создана');
 
-    if (onCreated) {
-      onCreated(createdGeotag);
+      if (onCreated) {
+        onCreated(createdGeotag);
+      }
+    } catch {
+      // useGeotags already exposes the message in formError.
     }
   };
 
@@ -27,15 +31,14 @@ export default function CreateGeotagPage({ onCreated, onCancel }) {
     <main className="page">
       <section className="hero">
         <h1>Создать место</h1>
-        <p>Добавь новую геометку и заполни информацию о ней.</p>
+        <p>Добавь карточку, отметь точку на карте и прикрепи фото или видео.</p>
       </section>
 
       <section className="geotag-page-card">
         <GeotagForm
-          initialValues={null}
           themes={themes}
           themesLoading={themesLoading}
-          formError={error}
+          formError={error || themesError}
           isSubmitting={isLoading}
           submitLabel="Создать карточку"
           onSubmit={handleSubmit}

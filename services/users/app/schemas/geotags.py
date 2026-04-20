@@ -8,18 +8,23 @@ class GeotagPublic(BaseModel):
     id: int
     title: str
     created_at: datetime
-    text: str
+    text: Optional[str]
     media_files: List[str]
     author_id: int
+    author_nickname: Optional[str] = None
+    author_avatar_url: Optional[str] = None
     theme_ids: List[int]
+    themes: List[dict] = Field(default_factory=list)
     latitude: float
     longitude: float
     warnings: Optional[str]
     tips: Optional[str]
     likes_count: int
+    views_count: int
+    liked_by_current_user: bool = False
     
     @classmethod
-    def from_orm(cls, geotag: Geotag) -> "GeotagPublic":
+    def from_orm(cls, geotag: Geotag, current_user_id: Optional[int] = None) -> "GeotagPublic":
         """Кастомная сериализация SQLAlchemy."""
         media_files = []
         raw_media = getattr(geotag, 'media_files', [])
@@ -30,6 +35,8 @@ class GeotagPublic(BaseModel):
                 else:
                     media_files.append(item)
 
+        likers = getattr(geotag, 'likers', [])
+
         return cls(
             id=geotag.id,
             title=geotag.title,
@@ -37,12 +44,23 @@ class GeotagPublic(BaseModel):
             text=geotag.text,
             media_files=media_files,
             theme_ids=[theme.id for theme in getattr(geotag, 'themes', [])],
+            themes=[
+                {"id": theme.id, "name": theme.name}
+                for theme in getattr(geotag, 'themes', [])
+            ],
             author_id=geotag.author_id,
+            author_nickname=getattr(getattr(geotag, 'author', None), 'nickname', None),
+            author_avatar_url=getattr(getattr(geotag, 'author', None), 'avatar_url', None),
             latitude=float(geotag.latitude),
             longitude=float(geotag.longitude),
             warnings=geotag.warnings,
             tips=geotag.tips,
             likes_count=geotag.likes_count,
+            views_count=geotag.views_count,
+            liked_by_current_user=(
+                current_user_id is not None
+                and any(user.id == current_user_id for user in likers)
+            ),
         )
 
 

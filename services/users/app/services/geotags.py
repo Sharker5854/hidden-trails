@@ -1,4 +1,5 @@
 import datetime
+import re
 from fastapi import HTTPException, status
 from typing import Optional, List, Dict, Any
 from sqlalchemy import select, and_, case, desc, func
@@ -7,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.users import User
 from app.models.themes import Theme
 from app.models.geotags import Geotag
+from app.services.users import UsersService
 from app.models.geotag_themes import geotag_themes
 from app.schemas.geotags import GeotagCreateForm, GeotagPublic, GeotagUpdateForm
 from app.integrations.yandexgpt import YandexGPT
@@ -18,13 +20,37 @@ class GeotagsService:
         self.db = db
         self.yndx_gpt = YandexGPT()
 
+    def _extract_moderation_text(self, validation_result) -> str:
+        try:
+            return (
+                validation_result.json()["result"]["alternatives"][0]["message"]["text"]
+                or ""
+            ).strip()
+        except (KeyError, IndexError, TypeError, AttributeError):
+            return ""
+
+    def _moderation_allows(self, validation_result, title: str) -> bool:
+        moderation_text = self._extract_moderation_text(validation_result)
+        bool_tokens = re.findall(r"\b(true|false)\b", moderation_text, flags=re.IGNORECASE)
+
+        if len(bool_tokens) < 2:
+            print(
+                f"[{datetime.datetime.now()}] Moderation skipped for geotag "
+                f"'{title}': unexpected response '{moderation_text}'"
+            )
+            return True
+
+        profanity_ok, facts_ok = [token.lower() == "true" for token in bool_tokens[:2]]
+        return profanity_ok and facts_ok
+
 
     async def get_by_id(self, geotag_id: int) -> Optional[Geotag]:
         stmt = (
             select(Geotag)
             .options(
                 selectinload(Geotag.themes),
-                selectinload(Geotag.author)
+                selectinload(Geotag.author),
+                selectinload(Geotag.likers),
             )
             .where(Geotag.id == geotag_id)
         )
@@ -48,17 +74,12 @@ class GeotagsService:
             warnings=form.warnings,
             tips=form.tips,
             likes_count=0,
+            views_count=0,
         )
 
         validation_result = await self.yndx_gpt.validate_profanity_and_falsification(f"Название статьи: '{geotag.title}'.  Координаты: latitude={geotag.latitude}, longitude={geotag.longitude}. Основной текст статьи: '{geotag.text}'. Текст раздела статьи с предупреждениями для путешественников: '{geotag.warnings}'. Текст раздела статьи с советами для путешественников: '{geotag.tips}'.")
-        profanity, falsification = validation_result.json()["result"]["alternatives"][0]["message"]["text"].split(", ")
-        print(profanity, falsification)
-        if (profanity == "False" or profanity == "false") or (falsification == "False" or falsification == "false"):
+        if not self._moderation_allows(validation_result, geotag.title):
             raise ValueError("Ваша статья содержит нецензурную лексику или ложные факты, которые могут ввести других пользователей в заблуждение. Исправьте статью и попробуйте еще раз.")
-        elif (profanity == "True" or profanity == "true") and (falsification == "True" or falsification == "true"):
-            pass
-        else:
-            print(f"[{datetime.datetime.now()}] При создании статьи c названием '{geotag.title}' не применилась валидация на нецензурную лексику и фальсификацию, т.к. ответ ИИ не соответствовал нужному формату. Требуется ручная модерация. Ответ: '{validation_result.json()["result"]["alternatives"][0]["message"]["text"]}'")
         
         self.db.add(geotag)
         await self.db.flush()
@@ -69,6 +90,8 @@ class GeotagsService:
                 theme_id=theme_id
             )
             await self.db.execute(stmt)
+
+        await UsersService(self.db).recalculate_user_rating(author_id)
         
         await self.db.commit()
         await self.db.refresh(geotag)
@@ -76,11 +99,29 @@ class GeotagsService:
         return geotag
     
 
-    async def get_geotag_public(self, geotag_id: int) -> Optional[GeotagPublic]:
+    async def get_geotag_public(
+        self,
+        geotag_id: int,
+        increment_view: bool = False,
+        current_user_id: Optional[int] = None,
+    ) -> Optional[GeotagPublic]:
         geotag = await self.get_by_id(geotag_id)
         if not geotag:
             return None
-        return GeotagPublic.from_orm(geotag)
+
+        should_increment_view = (
+            increment_view
+            and current_user_id is not None
+            and geotag.author_id != current_user_id
+        )
+
+        if should_increment_view:
+            geotag.views_count += 1
+            await UsersService(self.db).recalculate_user_rating(geotag.author_id)
+            await self.db.commit()
+            geotag = await self.get_by_id(geotag_id)
+
+        return GeotagPublic.from_orm(geotag, current_user_id=current_user_id)
     
 
     async def update_geotag(
@@ -101,13 +142,9 @@ class GeotagsService:
         geotag.tips = form.tips
 
         validation_result = await self.yndx_gpt.validate_profanity_and_falsification(f"Название статьи: '{geotag.title}'. Координаты: latitude={geotag.latitude}, longitude={geotag.longitude}. Основной текст статьи: '{geotag.text}'. Текст раздела статьи с предупреждениями для путешественников: '{geotag.warnings}'. Текст раздела статьи с советами для путешественников: '{geotag.tips}'.")
-        profanity, falsification = validation_result.json()["result"]["alternatives"][0]["message"]["text"].split(", ")
-        if (profanity == "False" or profanity == "false") or (falsification == "False" or falsification == "false"):
+
+        if not self._moderation_allows(validation_result, geotag.title):
             raise ValueError("Ваша статья содержит нецензурную лексику или ложные факты, которые могут ввести других пользователей в заблуждение. Исправьте статью и попробуйте еще раз.")
-        elif (profanity == "True" or profanity == "true") and (falsification == "True" or falsification == "true"):
-            pass
-        else:
-            print(f"[{datetime.datetime.now()}] При создании статьи c названием '{geotag.title}' не применилась валидация на нецензурную лексику и фальсификацию, т.к. ответ ИИ не соответствовал нужному формату. Требуется ручная модерация. Ответ: '{validation_result.json()["result"]["alternatives"][0]["message"]["text"]}'")
         
         
         if media_files != []:
@@ -228,6 +265,7 @@ class GeotagsService:
         self,
         user_id: int,
         limit: int = 20,
+        following_since: Optional[datetime.datetime] = None,
     ) -> List[Geotag]:
         
         user_stmt = select(User).options(
@@ -259,13 +297,30 @@ class GeotagsService:
             (Geotag.author_id == user_id, -1_000_000),
             else_=0
         )
+
+        followed_new_bonus = case(
+            (
+                and_(
+                    Geotag.author_id.in_(following_ids),
+                    Geotag.created_at > following_since
+                ),
+                5_000_000
+            ),
+            else_=0
+        ) if following_since else 0
         
         stmt = select(Geotag).options(
             selectinload(Geotag.author),
             selectinload(Geotag.themes),
-            selectinload(Geotag.comments)
+            selectinload(Geotag.comments),
+            selectinload(Geotag.likers),
         ).order_by(
-            desc((main_priority * 1_000_000) + (theme_bonus * 10_000) + own_articles_penalty),
+            desc(
+                followed_new_bonus
+                + (main_priority * 1_000_000)
+                + (theme_bonus * 10_000)
+                + own_articles_penalty
+            ),
             Geotag.created_at.desc(),
             desc(Geotag.likes_count),
         ).limit(limit)
@@ -306,6 +361,7 @@ class GeotagsService:
         
         user.liked_geotags.append(geotag)
         geotag.likes_count += 1
+        await UsersService(self.db).recalculate_user_rating(geotag.author_id)
         
         await self.db.commit()
         await self.db.refresh(geotag)
@@ -350,6 +406,7 @@ class GeotagsService:
         
         user.liked_geotags.remove(geotag)
         geotag.likes_count -= 1
+        await UsersService(self.db).recalculate_user_rating(geotag.author_id)
         
         await self.db.commit()
         await self.db.refresh(geotag)

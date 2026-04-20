@@ -108,6 +108,10 @@ class Geotag(Base):
         Integer, default=0
     )
 
+    views_count: Mapped[int] = mapped_column(
+        Integer, default=0, nullable=False
+    )
+
     likers: Mapped[List["User"]] = relationship(
         "User",
         secondary=user_likes,

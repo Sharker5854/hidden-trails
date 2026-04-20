@@ -7,7 +7,7 @@ from transliterate import translit
 from app.models import User
 from app.schemas.themes import ThemesCreateUpdate
 from app.services.themes import ThemesService
-from app.api.deps import admin_user, get_themes_service
+from app.api.deps import admin_user, get_current_user, get_themes_service
 
 
 router = APIRouter(prefix="/theme", tags=["themes"])
@@ -18,7 +18,7 @@ templates = Jinja2Templates(directory="app/templates")
 @router.get("/all")
 async def get_all(
     request: Request,
-    admin_user: Annotated[User, Depends(admin_user)],
+    current_user: Annotated[User, Depends(get_current_user)],
     themes_svc: ThemesService = Depends(get_themes_service)
 ):
     themes = await themes_svc.get_all_themes()

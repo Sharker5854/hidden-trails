@@ -4,6 +4,7 @@ from .themes import Theme
 from .route import Route
 from .achievments import Achievment
 from .comments import Comment
+from .messages import Conversation, Message
 from .geotag_themes import geotag_themes
 from .user_achievments import user_achievments
 from .user_themes import user_themes
@@ -16,4 +17,14 @@ from .route_themes import route_themes
 from .base import Base
 
 
-__all__ = ["Base", "User", "Geotag", "Theme", "Achievment", "Comment", "Route"]
+__all__ = [
+    "Base",
+    "User",
+    "Geotag",
+    "Theme",
+    "Achievment",
+    "Comment",
+    "Route",
+    "Conversation",
+    "Message",
+]

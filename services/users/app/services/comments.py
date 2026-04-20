@@ -6,6 +6,7 @@ from fastapi import HTTPException, status
 from app.models.comments import Comment
 from app.models.users import User
 from app.models.geotags import Geotag
+from app.services.users import UsersService
 
 
 
@@ -53,9 +54,11 @@ class CommentsService:
             text=text,
             author_id=author_id,
             geotag_id=geotag_id,
-            parent_id=parent.id
+            parent_id=parent.id if parent else None
         )
         self.db.add(comment)
+        await self.db.flush()
+        await UsersService(self.db).recalculate_user_rating(geotag.author_id)
         await self.db.commit()
         await self.db.refresh(comment, ["author", "replies"])
         
@@ -67,6 +70,11 @@ class CommentsService:
             "geotag_id": comment.geotag_id,
             "parent_id": comment.parent_id,
             "likes_count": comment.likes_count,
+            "author": {
+                "id": comment.author.id,
+                "nickname": comment.author.nickname,
+            },
+            "replies": [],
         }
     
 
@@ -90,7 +98,14 @@ class CommentsService:
         if comment.author_id != user_id:
             raise HTTPException(403, "Only author can delete comment.")
         
+        geotag_stmt = select(Geotag.author_id).where(Geotag.id == comment.geotag_id)
+        geotag_result = await self.db.execute(geotag_stmt)
+        geotag_author_id = geotag_result.scalar_one_or_none()
+
         await self.db.delete(comment)
+        await self.db.flush()
+        if geotag_author_id:
+            await UsersService(self.db).recalculate_user_rating(geotag_author_id)
         await self.db.commit()
         
         return {"deleted": comment_id}
@@ -132,7 +147,10 @@ class CommentsService:
                         "id": r.id,
                         "text": r.text,
                         "created_at": r.created_at,
-                        "author": {"id": r.author.id, "nickname": r.author.nickname}
+                        "author": {"id": r.author.id, "nickname": r.author.nickname},
+                        "parent_id": r.parent_id,
+                        "likes_count": r.likes_count,
+                        "replies": [],
                     }
                     for r in c.replies
                 ]

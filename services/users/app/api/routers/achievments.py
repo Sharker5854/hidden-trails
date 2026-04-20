@@ -71,7 +71,12 @@ async def create(
     picture_path = None
     if picture_file and picture_file.filename:
         ext = Path(picture_file.filename).suffix
-        filename = f"achievment_{translit(title.lower(), language_code='ru', reversed=True).replace(" ", "_").replace("/", "_")}{ext}"
+        safe_title = translit(
+            title.lower(),
+            language_code='ru',
+            reversed=True
+        ).replace(" ", "_").replace("/", "_")
+        filename = f"achievment_{safe_title}{ext}"
         disk_path = PICTURES_DIR / filename
         contents = await picture_file.read()
         disk_path.write_bytes(contents)

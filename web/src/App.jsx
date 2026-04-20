@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './App.css';
 
 import Header from './components/layout/Header';
@@ -10,25 +10,58 @@ import RegisterPage from './pages/RegisterPage';
 import PlaceDetailsPage from './pages/PlaceDetailsPage';
 import CreateGeotagPage from './pages/CreateGeotagPage';
 import EditGeotagPage from './pages/EditGeotagPage';
+import UserSearchPage from './pages/UserSearchPage';
+import UserProfilePage from './pages/UserProfilePage';
+import MessagesPage from './pages/MessagesPage';
 import { useAuth } from './hooks/useAuth';
+import { useGeotags } from './hooks/useGeotags';
 
 export default function App() {
   const {
     user,
     isAuthorized,
-    isLoading,
+    isLoading: authLoading,
     authError,
     login,
     register,
     logout,
   } = useAuth();
+  const {
+    isLoading: geotagsLoading,
+    error: geotagsError,
+    loadFeed,
+    loadGeotagById,
+  } = useGeotags();
 
   const [currentPage, setCurrentPage] = useState('login');
+  const [places, setPlaces] = useState([]);
   const [selectedPlace, setSelectedPlace] = useState(null);
+  const [selectedUserId, setSelectedUserId] = useState(null);
   const [mapFocusedPlace, setMapFocusedPlace] = useState(null);
   const [profileUser, setProfileUser] = useState(null);
+  const [messageRecipientId, setMessageRecipientId] = useState(null);
+  const viewedGeotagIdsRef = useRef(new Set());
 
   const activeUser = profileUser || user;
+
+  useEffect(() => {
+    if (!isAuthorized) {
+      return;
+    }
+
+    loadFeed()
+      .then((loadedPlaces) => setPlaces(loadedPlaces))
+      .catch(() => {});
+  }, [isAuthorized, loadFeed]);
+
+  const upsertPlace = (place) => {
+    if (!place) return;
+
+    setPlaces((prev) => [
+      place,
+      ...prev.filter((existingPlace) => existingPlace.id !== place.id),
+    ]);
+  };
 
   const handleLogin = async ({ email, password }) => {
     await login({ email, password });
@@ -53,9 +86,13 @@ export default function App() {
   const handleLogout = async () => {
     await logout();
     setCurrentPage('login');
+    setPlaces([]);
     setSelectedPlace(null);
+    setSelectedUserId(null);
     setMapFocusedPlace(null);
     setProfileUser(null);
+    setMessageRecipientId(null);
+    viewedGeotagIdsRef.current.clear();
   };
 
   const handleNavigate = (page) => {
@@ -64,12 +101,27 @@ export default function App() {
       return;
     }
 
+    if (page === 'messages') {
+      setMessageRecipientId(null);
+    }
+
     setCurrentPage(page);
   };
 
   const handleOpenDetails = (place) => {
     setSelectedPlace(place);
     setCurrentPage('place-details');
+
+    if (place?.id) {
+      const shouldTrackView = !viewedGeotagIdsRef.current.has(place.id);
+      loadGeotagById(place.id, { trackView: shouldTrackView })
+        .then((freshPlace) => {
+          viewedGeotagIdsRef.current.add(place.id);
+          setSelectedPlace(freshPlace);
+          upsertPlace(freshPlace);
+        })
+        .catch(() => {});
+    }
   };
 
   const handleOpenOnMap = (place) => {
@@ -87,8 +139,37 @@ export default function App() {
     setCurrentPage('edit-geotag');
   };
 
+  const handleOpenUserProfile = (userId) => {
+    if (!userId) return;
+
+    if (user?.id === userId) {
+      setCurrentPage('profile');
+      return;
+    }
+
+    setSelectedUserId(userId);
+    setCurrentPage('user-profile');
+  };
+
+  const handleOpenMessages = (userId = null) => {
+    setMessageRecipientId(userId);
+    setCurrentPage('messages');
+  };
+
+  const renderFeed = () => (
+    <FeedPage
+      places={places}
+      isLoading={geotagsLoading}
+      error={geotagsError}
+      onOpenDetails={handleOpenDetails}
+      onOpenOnMap={handleOpenOnMap}
+      onOpenUserProfile={handleOpenUserProfile}
+      onOpenCreateGeotag={handleOpenCreateGeotag}
+    />
+  );
+
   const renderPage = () => {
-    if (isLoading && !isAuthorized) {
+    if (authLoading && !isAuthorized) {
       return (
         <main className="page auth-page">
           <div className="auth-form">
@@ -104,7 +185,7 @@ export default function App() {
           <RegisterPage
             onRegister={handleRegister}
             onGoToLogin={() => setCurrentPage('login')}
-            isLoading={isLoading}
+            isLoading={authLoading}
             error={authError}
           />
         );
@@ -114,7 +195,7 @@ export default function App() {
         <LoginPage
           onLogin={handleLogin}
           onGoToRegister={() => setCurrentPage('register')}
-          isLoading={isLoading}
+          isLoading={authLoading}
           error={authError}
         />
       );
@@ -122,14 +203,44 @@ export default function App() {
 
     switch (currentPage) {
       case 'map':
-        return <MapPage focusedPlace={mapFocusedPlace} />;
+        return (
+          <MapPage
+            places={places}
+            focusedPlace={mapFocusedPlace}
+            onOpenDetails={handleOpenDetails}
+            onOpenUserProfile={handleOpenUserProfile}
+          />
+        );
       case 'profile':
         return (
           <ProfilePage
+            places={places}
             onOpenDetails={handleOpenDetails}
             onOpenOnMap={handleOpenOnMap}
+            onOpenUserProfile={handleOpenUserProfile}
             onProfileLoaded={setProfileUser}
           />
+        );
+      case 'users-search':
+        return <UserSearchPage onOpenUserProfile={handleOpenUserProfile} />;
+      case 'messages':
+        return (
+          <MessagesPage
+            initialRecipientId={messageRecipientId}
+            onOpenUserProfile={handleOpenUserProfile}
+          />
+        );
+      case 'user-profile':
+        return selectedUserId ? (
+          <UserProfilePage
+            userId={selectedUserId}
+            onOpenDetails={handleOpenDetails}
+            onOpenOnMap={handleOpenOnMap}
+            onOpenUserProfile={handleOpenUserProfile}
+            onOpenMessages={handleOpenMessages}
+          />
+        ) : (
+          renderFeed()
         );
       case 'place-details':
         return selectedPlace ? (
@@ -137,19 +248,22 @@ export default function App() {
             place={selectedPlace}
             onOpenOnMap={handleOpenOnMap}
             onEditPlace={handleOpenEditGeotag}
+            onOpenUserProfile={handleOpenUserProfile}
+            onPlaceUpdated={(updatedPlace) => {
+              setSelectedPlace(updatedPlace);
+              upsertPlace(updatedPlace);
+            }}
           />
         ) : (
-          <FeedPage
-            onOpenDetails={handleOpenDetails}
-            onOpenOnMap={handleOpenOnMap}
-            onOpenCreateGeotag={handleOpenCreateGeotag}
-          />
+          renderFeed()
         );
       case 'create-geotag':
         return (
           <CreateGeotagPage
             onCreated={(createdGeotag) => {
+              upsertPlace(createdGeotag);
               setSelectedPlace(createdGeotag);
+              setMapFocusedPlace(createdGeotag);
               setCurrentPage('place-details');
             }}
             onCancel={() => setCurrentPage('feed')}
@@ -161,27 +275,19 @@ export default function App() {
             geotagId={selectedPlace.id}
             initialGeotag={selectedPlace}
             onUpdated={(updatedGeotag) => {
+              upsertPlace(updatedGeotag);
               setSelectedPlace(updatedGeotag);
+              setMapFocusedPlace(updatedGeotag);
               setCurrentPage('place-details');
             }}
             onCancel={() => setCurrentPage('place-details')}
           />
         ) : (
-          <FeedPage
-            onOpenDetails={handleOpenDetails}
-            onOpenOnMap={handleOpenOnMap}
-            onOpenCreateGeotag={handleOpenCreateGeotag}
-          />
+          renderFeed()
         );
       case 'feed':
       default:
-        return (
-          <FeedPage
-            onOpenDetails={handleOpenDetails}
-            onOpenOnMap={handleOpenOnMap}
-            onOpenCreateGeotag={handleOpenCreateGeotag}
-          />
-        );
+        return renderFeed();
     }
   };
 
