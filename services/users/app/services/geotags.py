@@ -102,7 +102,6 @@ class GeotagsService:
 
         validation_result = await self.yndx_gpt.validate_profanity_and_falsification(f"Название статьи: '{geotag.title}'. Координаты: latitude={geotag.latitude}, longitude={geotag.longitude}. Основной текст статьи: '{geotag.text}'. Текст раздела статьи с предупреждениями для путешественников: '{geotag.warnings}'. Текст раздела статьи с советами для путешественников: '{geotag.tips}'.")
         profanity, falsification = validation_result.json()["result"]["alternatives"][0]["message"]["text"].split(", ")
-        print(profanity, falsification)
         if (profanity == "False" or profanity == "false") or (falsification == "False" or falsification == "false"):
             raise ValueError("Ваша статья содержит нецензурную лексику или ложные факты, которые могут ввести других пользователей в заблуждение. Исправьте статью и попробуйте еще раз.")
         elif (profanity == "True" or profanity == "true") and (falsification == "True" or falsification == "true"):
@@ -134,6 +133,9 @@ class GeotagsService:
                 theme_id=theme_id
             )
             await self.db.execute(stmt)
+
+        geotag.is_moderated = False
+        geotag.moderator_comment = None
         
         await self.db.commit()
         await self.db.refresh(geotag)
