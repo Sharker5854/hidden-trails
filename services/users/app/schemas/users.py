@@ -7,8 +7,6 @@ class UserCreate(BaseModel):
     email: EmailStr
     nickname: str = Field(..., min_length=3, max_length=50)
     password: str = Field(..., min_length=4)
-
-    # hashed_password Р·Р°РїРѕР»РЅРёС‚ СЃРµСЂРІРёСЃ
     hashed_password: Optional[str] = None
     
 
@@ -18,16 +16,15 @@ class UserUpdateForm(BaseModel):
     phone: Optional[str] = None
     name: Optional[str] = None
     surname: Optional[str] = None
-
     theme_ids: Optional[List[int]] = []
-
     is_moder: bool = False
     is_admin: bool = False
     is_premium: bool = False
+
     @model_validator(mode="after")
     def validate_required_fields(self):
         if not self.email:
-            raise ValueError("Email РѕР±СЏР·Р°С‚РµР»РµРЅ!")
+            raise ValueError("Email is required.")
         if not self.nickname:
             raise ValueError("Nickname is required.")
         return self
