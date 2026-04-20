@@ -30,9 +30,9 @@ from app.api.deps import get_current_user, get_themes_service, get_geotags_servi
 # Админка ???
 # Страница модерации +++
 # Сделать, чтобы при апдейте геотэга is_moderated и moderator_comment слетало +++
-# feed геометок требующих модерации
-# Чтобы не отмодерированные геотэги не отображались публике (на карте и в feed) + еще где это надо
-# (добавить метод проверки является ли статья moderated в service геотэгов)
+# feed геометок требующих модерации +++
+# Чтобы не отмодерированные геотэги не отображались публике (на карте и в feed) + еще где это надо +++
+# (добавить метод проверки является ли статья moderated в service геотэгов) +++
 # Отображение коммента модератора автору
 # Эндпоинт выдачи премиума
 # Проложение маршрутов +++
@@ -81,6 +81,15 @@ async def save_geotag_media_files(media_files: Optional[List[UploadFile]], title
     return media_file_paths
 
 
+@router.get("/show/all")
+async def get_geotag(
+    geotags_svc: GeotagsService = Depends(get_geotags_service),
+    current_user: User = Depends(get_current_user),
+):
+    geotags = await geotags_svc.get_all_moderated_geotags()
+
+    return geotags
+
 
 @router.get("/show/{geotag_id}")
 async def get_geotag(
@@ -95,8 +104,13 @@ async def get_geotag(
         increment_view=track_view,
         current_user_id=current_user.id,
     )
+
     if not geotag:
-        raise HTTPException(status_code=404, detail="Геометка не найдена")
+        raise HTTPException(status_code=404, detail="Геометка не найдена.")
+    
+    if not await geotags_svc.is_geotag_moderated(geotag_id):
+        raise HTTPException(status_code=404, detail="Геометка ещё не прошла модерацию.")
+
     return geotag
 
 
@@ -283,6 +297,8 @@ async def save_geotag(
     geotags_svc: Annotated[GeotagsService, Depends(get_geotags_service)],
     user: User = Depends(get_current_user),
 ):
+    if not await geotags_svc.is_geotag_moderated(geotag_id):
+        raise HTTPException(status_code=404, detail="Нельзя сохранить геометку, которая еще не прошла модерацию.")
     
     result = await geotags_svc.save_geotag(
         user_id=user.id,
@@ -298,7 +314,9 @@ async def unsave_geotag(
     geotags_svc: Annotated[GeotagsService, Depends(get_geotags_service)],
     user: User = Depends(get_current_user),
 ):
-    
+    if not await geotags_svc.is_geotag_moderated(geotag_id):
+        raise HTTPException(status_code=404, detail="Нельзя удалить из сохраненных геометку, которая еще не прошла модерацию.")
+
     result = await geotags_svc.unsave_geotag(
         user_id=user.id,
         geotag_id=geotag_id
@@ -342,6 +360,9 @@ async def like_geotag(
     geotags_svc: GeotagsService = Depends(get_geotags_service),
     user: User = Depends(get_current_user),
 ):
+    if not await geotags_svc.is_geotag_moderated(geotag_id):
+        raise HTTPException(status_code=404, detail="Нельзя лайкнуть геометку, которая еще не прошла модерацию.")
+    
     result = await geotags_svc.like_geotag(user.id, geotag_id)
     return JSONResponse(status_code=200, content=result)
 
@@ -351,5 +372,8 @@ async def unlike_geotag(
     geotags_svc: GeotagsService = Depends(get_geotags_service),
     user: User = Depends(get_current_user),
 ):
+    if not await geotags_svc.is_geotag_moderated(geotag_id):
+        raise HTTPException(status_code=404, detail="Нельзя убрать лайк у геометки, которая еще не прошла модерацию.")
+
     result = await geotags_svc.unlike_geotag(user.id, geotag_id)
     return JSONResponse(status_code=200, content=result)

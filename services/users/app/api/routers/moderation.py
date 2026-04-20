@@ -11,6 +11,16 @@ router = APIRouter(prefix="/moderation", tags=["moderation"])
 
 
 
+@router.get("/need-moderation")
+async def get_all_pending_moderation(
+    moder_user: User = Depends(get_current_moder_user),
+    moderation_svc: ModerationService = Depends(get_moderation_service)
+):
+    geotags = await moderation_svc.need_moderate_geotags()
+    return geotags
+
+
+
 @router.get("/moderate/{geotag_id}")
 async def moderate(
     geotag_id: int,

@@ -31,6 +31,7 @@ class UsersService:
             await self.recalculate_user_rating(user)
         return user
     
+
     async def get_by_nickname(self, nickname: str) -> Optional[User]:
         stmt = select(User).options(selectinload(User.themes)).where(User.nickname == nickname)
         result = await self.db.execute(stmt)
@@ -38,6 +39,7 @@ class UsersService:
         if user:
             await self.recalculate_user_rating(user)
         return user
+
 
     async def search_by_nickname(self, nickname: str, current_user_id: int, limit: int = 12) -> List[UserMiniPublic]:
         query = nickname.strip()
@@ -59,6 +61,7 @@ class UsersService:
             await self.recalculate_user_rating(user)
         return [UserMiniPublic.model_validate(user) for user in users]
 
+
     async def get_top_users(self, limit: int = 7) -> List[UserMiniPublic]:
         stmt = select(User)
         result = await self.db.execute(stmt)
@@ -73,6 +76,7 @@ class UsersService:
             reverse=True,
         )[:limit]
         return [UserMiniPublic.model_validate(user) for user in top_users]
+
 
     async def list_users(self, page: int = 1, page_size: int = 10) -> UsersListPublic:
         stmt = select(User).order_by(User.nickname)
@@ -95,6 +99,7 @@ class UsersService:
             total=total,
             total_pages=total_pages,
         )
+
 
     async def get_public_profile(
         self,

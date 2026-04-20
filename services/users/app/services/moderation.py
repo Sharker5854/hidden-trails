@@ -1,6 +1,6 @@
-from fastapi import HTTPException, status
-from typing import Optional, List, Dict, Any
-from sqlalchemy import select, and_, case, desc, func
+from fastapi import HTTPException
+from typing import List
+from sqlalchemy import select, and_, or_
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from .geotags import GeotagsService
@@ -36,4 +36,31 @@ class ModerationService:
             approved=geotag.is_moderated,
             moderator_comment=geotag.moderator_comment
         )
+    
+
+    async def need_moderate_geotags(self) -> List[Geotag]:
+        """Получаем все геотэги, которые ждут модерации"""
         
+        stmt = (
+            select(Geotag)
+            .options(
+                selectinload(Geotag.author),
+                selectinload(Geotag.themes),
+                selectinload(Geotag.likers),
+                selectinload(Geotag.comments)
+            )
+            .where(
+                and_(
+                    Geotag.is_moderated == False,
+                    or_(
+                        Geotag.moderator_comment.is_(None),
+                        Geotag.moderator_comment == ''
+                    )
+                )
+            )
+            .order_by(Geotag.created_at.asc())
+        )
+        
+        result = await self.db.execute(stmt)
+        return result.scalars().all()
+            

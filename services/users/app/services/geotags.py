@@ -314,7 +314,7 @@ class GeotagsService:
             selectinload(Geotag.themes),
             selectinload(Geotag.comments),
             selectinload(Geotag.likers),
-        ).order_by(
+        ).where(Geotag.is_moderated == True).order_by(
             desc(
                 followed_new_bonus
                 + (main_priority * 1_000_000)
@@ -417,3 +417,24 @@ class GeotagsService:
             "geotag_id": geotag_id,
             "total_likes": geotag.likes_count,
         }
+    
+
+    async def is_geotag_moderated(self, geotag_id: int) -> bool:
+        stmt = select(Geotag.is_moderated).where(Geotag.id == geotag_id)
+        result = await self.db.execute(stmt)
+        is_moderated = result.scalar()
+        return bool(is_moderated)
+
+
+    async def get_all_moderated_geotags(self) -> List[Geotag]:
+        stmt = (
+            select(Geotag)
+            .options(
+                selectinload(Geotag.themes),
+                selectinload(Geotag.comments)
+            )
+            .where(Geotag.is_moderated == True)
+            .order_by(Geotag.created_at.desc())
+        )
+        result = await self.db.execute(stmt)
+        return result.scalars().all()
