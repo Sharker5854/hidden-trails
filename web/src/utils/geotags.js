@@ -47,6 +47,12 @@ export function normalizeGeotag(rawGeotag) {
     likedByCurrentUser:
       rawGeotag.liked_by_current_user ?? rawGeotag.likedByCurrentUser ?? false,
     views: rawGeotag.views_count ?? rawGeotag.views ?? 0,
+    moderationStatus:
+      rawGeotag.moderation_status ?? rawGeotag.moderationStatus ?? 'pending',
+    moderatorComment:
+      rawGeotag.moderator_comment ?? rawGeotag.moderatorComment ?? '',
+    lastModeratedById:
+      rawGeotag.last_moderated_by_id ?? rawGeotag.lastModeratedById ?? null,
     comments: rawGeotag.comments ?? [],
   };
 }

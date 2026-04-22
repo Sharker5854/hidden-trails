@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import PlaceCard from '../components/place/PlaceCard';
 import UserRelations from '../components/profile/UserRelations';
 import { getUserProfileRequest } from '../api/usersApi';
+import { getMyRoutesRequest } from '../api/routesApi';
 import { useProfile } from '../hooks/useProfile';
 import { resolveAvatarUrl } from '../utils/assets';
+import { normalizeRoutes } from '../utils/routes';
 import { normalizeUserProfile } from '../utils/users';
 
 function profileToFormState(profile) {
@@ -23,10 +25,18 @@ export default function ProfilePage({
   onOpenUserProfile,
   onProfileLoaded,
 }) {
-  const { profile, isLoading, error, loadProfile, updateProfile } = useProfile();
+  const {
+    profile,
+    isLoading,
+    error,
+    loadProfile,
+    updateProfile,
+    togglePremium,
+  } = useProfile();
   const [publicProfile, setPublicProfile] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [avatarFile, setAvatarFile] = useState(null);
+  const [savedRoutes, setSavedRoutes] = useState([]);
   const [successMessage, setSuccessMessage] = useState('');
   const [formState, setFormState] = useState(() => profileToFormState(null));
 
@@ -49,6 +59,10 @@ export default function ProfilePage({
 
     getUserProfileRequest(profile.id)
       .then((data) => setPublicProfile(normalizeUserProfile(data)))
+      .catch(() => {});
+
+    getMyRoutesRequest()
+      .then((data) => setSavedRoutes(normalizeRoutes(data?.routes)))
       .catch(() => {});
   }, [profile?.id]);
 
@@ -80,6 +94,7 @@ export default function ProfilePage({
       phone: formState.phone,
       name: formState.name,
       surname: formState.surname,
+      is_premium: profile?.is_premium || false,
     };
 
     if (avatarFile) {
@@ -140,6 +155,21 @@ export default function ProfilePage({
                   }}
                 >
                   Редактировать профиль
+                </button>
+                <button
+                  className={profile?.is_premium ? 'primary-button' : 'secondary-button'}
+                  onClick={async () => {
+                    const updatedProfile = await togglePremium();
+                    onProfileLoaded?.(updatedProfile);
+                    setSuccessMessage(
+                      updatedProfile.is_premium
+                        ? 'Премиум включён. Можно строить маршруты.'
+                        : 'Премиум выключен.'
+                    );
+                  }}
+                  disabled={isLoading}
+                >
+                  {profile?.is_premium ? 'Премиум активен' : 'Получить премиум'}
                 </button>
               </div>
 
@@ -308,6 +338,23 @@ export default function ProfilePage({
           </div>
         ) : (
           <p className="profile-section-header__hint">Достижений пока нет</p>
+        )}
+      </section>
+
+      <section>
+        <h2 className="section-title">Мои маршруты</h2>
+        {savedRoutes.length > 0 ? (
+          <div className="routes-profile-grid">
+            {savedRoutes.map((route) => (
+              <article key={route.id} className="route-profile-card">
+                <h3>{route.title}</h3>
+                <p>{route.distanceKm} км · {route.durationMin} мин</p>
+                <span>{route.isPublic ? 'Опубликован' : 'В профиле'}</span>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="profile-section-header__hint">Маршрутов пока нет</p>
         )}
       </section>
 

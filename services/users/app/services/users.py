@@ -2,11 +2,12 @@ from typing import Optional, Dict, Any, List
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from app.models.users import User
 from app.models.themes import Theme
 from app.models.geotags import Geotag
 from app.models.comments import Comment
+from app.models.moderation import ModerationAction
 from app.models.user_achievments import user_achievments
 from app.schemas.geotags import GeotagPublic
 from app.schemas.users import PublicUserProfile, UserCreate, UserMiniPublic, UserUpdateForm, UsersListPublic
@@ -17,6 +18,8 @@ LIKE_SCORE = 6
 COMMENT_SCORE = 3
 POST_SCORE = 12
 ACHIEVEMENT_SCORE = 25
+REVISION_PENALTY = 8
+BLOCK_PENALTY = 30
 
 
 class UsersService:
@@ -125,6 +128,12 @@ class UsersService:
 
         await self.recalculate_user_rating(user)
 
+        visible_geotags = [
+            geotag
+            for geotag in user.geotags
+            if geotag.moderation_status != "blocked" or user.id == current_user_id
+        ]
+
         return PublicUserProfile(
             id=user.id,
             nickname=user.nickname,
@@ -151,7 +160,7 @@ class UsersService:
             ],
             geotags=[
                 GeotagPublic.from_orm(geotag, current_user_id=current_user_id).model_dump(mode="json")
-                for geotag in sorted(user.geotags, key=lambda item: item.created_at, reverse=True)
+                for geotag in sorted(visible_geotags, key=lambda item: item.created_at, reverse=True)
             ],
         )
 
@@ -171,14 +180,20 @@ class UsersService:
             func.coalesce(func.sum(Geotag.likes_count), 0),
             func.coalesce(func.sum(Geotag.views_count), 0),
             func.count(Geotag.id),
-        ).where(Geotag.author_id == user_id)
+        ).where(
+            Geotag.author_id == user_id,
+            Geotag.moderation_status != "blocked",
+        )
         geotag_stats_result = await self.db.execute(geotag_stats_stmt)
         likes_count, views_count, posts_count = geotag_stats_result.one()
 
         comments_stmt = (
             select(func.count(Comment.id))
             .join(Geotag, Comment.geotag_id == Geotag.id)
-            .where(Geotag.author_id == user_id)
+            .where(
+                Geotag.author_id == user_id,
+                Geotag.moderation_status != "blocked",
+            )
         )
         comments_result = await self.db.execute(comments_stmt)
         comments_count = int(comments_result.scalar_one() or 0)
@@ -189,12 +204,28 @@ class UsersService:
         achievements_result = await self.db.execute(achievements_stmt)
         achievements_count = int(achievements_result.scalar_one() or 0)
 
+        penalties_stmt = select(
+            func.coalesce(
+                func.sum(
+                    case(
+                        (ModerationAction.action == "revision", REVISION_PENALTY),
+                        (ModerationAction.action == "block", BLOCK_PENALTY),
+                        else_=0,
+                    )
+                ),
+                0,
+            )
+        ).where(ModerationAction.author_id == user_id)
+        penalties_result = await self.db.execute(penalties_stmt)
+        moderation_penalty = int(penalties_result.scalar_one() or 0)
+
         rating = int(
             (int(likes_count or 0) * LIKE_SCORE)
             + (int(views_count or 0) * VIEW_SCORE)
             + (comments_count * COMMENT_SCORE)
             + (int(posts_count or 0) * POST_SCORE)
             + (achievements_count * ACHIEVEMENT_SCORE)
+            - moderation_penalty
         )
 
         target_user = user
@@ -234,7 +265,7 @@ class UsersService:
                 raise ValueError("Nickname уже занят!")
 
         for field, value in data.items():
-            if field in ["email", "nickname", "phone", "name", "surname", "is_moder", "is_admin", "is_premium"]:
+            if field in ["email", "nickname", "phone", "name", "surname"]:
                 setattr(user, field, value)
 
         if avatar_url is not None:
@@ -243,6 +274,16 @@ class UsersService:
         await self.sync_user_themes(user, form.theme_ids)
         await self.recalculate_user_rating(user)
 
+        await self.db.commit()
+        await self.db.refresh(user)
+        return user
+
+    async def set_moderator_role(self, user_id: int, is_moder: bool) -> User:
+        user = await self.db.get(User, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found.")
+
+        user.is_moder = is_moder
         await self.db.commit()
         await self.db.refresh(user)
         return user

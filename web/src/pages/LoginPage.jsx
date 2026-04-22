@@ -1,8 +1,8 @@
 import { useState } from 'react';
 
 export default function LoginPage({ onLogin, onGoToRegister, isLoading, error }) {
-  const [email, setEmail] = useState('eve');
-  const [password, setPassword] = useState('eve');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -22,6 +22,8 @@ export default function LoginPage({ onLogin, onGoToRegister, isLoading, error })
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             placeholder="eve@example.com"
+            autoComplete="email"
+            required
           />
         </label>
 
@@ -32,7 +34,9 @@ export default function LoginPage({ onLogin, onGoToRegister, isLoading, error })
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            placeholder="eve"
+            placeholder="Введите пароль"
+            autoComplete="current-password"
+            required
           />
         </label>
 

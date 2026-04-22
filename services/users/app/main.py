@@ -10,6 +10,7 @@ from .api.routers.comments import router as comments_router
 from .api.routers.routes import router as routes_router
 from .api.routers.moderation import router as moderation_router
 from .api.routers.messages import router as messages_router
+from .api.routers.notifications import router as notifications_router
 from .db.session import engine
 from .models import *
 from .models.base import Base
@@ -47,5 +48,6 @@ app.include_router(comments_router)
 app.include_router(routes_router)
 app.include_router(moderation_router)
 app.include_router(messages_router)
+app.include_router(notifications_router)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")

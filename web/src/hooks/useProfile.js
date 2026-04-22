@@ -1,5 +1,9 @@
 import { useCallback, useState } from 'react';
-import { getProfileRequest, updateProfileRequest } from '../api/profileApi';
+import {
+  getProfileRequest,
+  togglePremiumRequest,
+  updateProfileRequest,
+} from '../api/profileApi';
 import { getErrorMessage } from '../utils/errors';
 import { DEV_AUTH_ENABLED, DEV_USER } from '../constants/api';
 
@@ -79,11 +83,39 @@ export function useProfile() {
     [profile]
   );
 
+  const togglePremium = useCallback(async () => {
+    setIsLoading(true);
+
+    try {
+      if (DEV_AUTH_ENABLED) {
+        const updatedProfile = {
+          ...profile,
+          is_premium: !profile?.is_premium,
+        };
+        setProfile(updatedProfile);
+        setError('');
+        return updatedProfile;
+      }
+
+      const data = await togglePremiumRequest();
+      setProfile(data);
+      setError('');
+      return data;
+    } catch (err) {
+      const message = getErrorMessage(err);
+      setError(message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [profile]);
+
   return {
     profile,
     isLoading,
     error,
     loadProfile,
     updateProfile,
+    togglePremium,
   };
 }

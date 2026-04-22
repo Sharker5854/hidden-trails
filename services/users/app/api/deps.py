@@ -18,6 +18,7 @@ from app.services.comments import CommentsService
 from app.services.routes import RoutesService
 from app.services.moderation import ModerationService
 from app.services.messages import MessagesService
+from app.services.notifications import NotificationsService
 from ..db.session import AsyncSessionLocal
 
 
@@ -57,6 +58,8 @@ async def get_current_user(
     users_svc: Annotated[UsersService, Depends(get_users_service)],
     client: httpx.AsyncClient = Depends(get_httpx_client),
 ) -> User:
+    access_token = None
+    refresh_token = None
     auth = request.headers.get("Authorization")
     if auth and auth.startswith("Bearer "):
         access_token = auth.split(" ")[1]
@@ -130,7 +133,7 @@ async def get_current_premium_user(
 async def get_current_moder_user(
     current_user: User = Depends(get_current_user)
 ) -> User:
-    if not current_user.is_moder:
+    if not (current_user.is_moder or current_user.is_admin):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Need to be moderator to access this feature."
@@ -181,6 +184,12 @@ async def get_messages_service(
         db: AsyncSession = Depends(get_db)
     ) -> MessagesService:
     return MessagesService(db)
+
+
+async def get_notifications_service(
+        db: AsyncSession = Depends(get_db)
+    ) -> NotificationsService:
+    return NotificationsService(db)
 
 
 

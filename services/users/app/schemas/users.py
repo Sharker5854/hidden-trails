@@ -69,6 +69,8 @@ class UserMiniPublic(BaseModel):
     nickname: str
     avatar_url: str
     rating: int = 0
+    is_moder: bool = False
+    is_admin: bool = False
 
     class Config:
         from_attributes = True

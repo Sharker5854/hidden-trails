@@ -19,3 +19,11 @@ export async function updateProfileRequest(profileData) {
 
   return handleApiResponse(response);
 }
+
+export async function togglePremiumRequest() {
+  const response = await apiRequest('/auth/premium/toggle', {
+    method: 'POST',
+  });
+
+  return handleApiResponse(response);
+}

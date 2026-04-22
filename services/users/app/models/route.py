@@ -1,7 +1,8 @@
 from typing import Optional
-from sqlalchemy import String, Integer, DateTime, Text, ForeignKey, Float
+from sqlalchemy import String, Integer, DateTime, Text, ForeignKey, Float, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
+from .route_geotags import route_geotags
 from datetime import datetime
 
 
@@ -67,8 +68,9 @@ class Route(Base):
     )
 
     geotags: Mapped[list["Geotag"]] = relationship(
-        secondary="route_geotags",
+        secondary=route_geotags,
         back_populates="routes",
+        order_by=route_geotags.c.position,
     )
 
     transport_type: Mapped[Optional[str]] = mapped_column(
@@ -92,6 +94,13 @@ class Route(Base):
     )
 
     # polyline как строка или JSON
+    is_public: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
+        index=True,
+    )
+
     polyline: Mapped[str] = mapped_column(
         Text,
     )

@@ -47,6 +47,17 @@ export default function EditGeotagPage({
       </section>
 
       <section className="geotag-page-card">
+        {geotag?.moderationComment ? (
+          <div className="place-details__note place-details__note--warning">
+            <h3>
+              {geotag?.moderationStatus === 'blocked'
+                ? 'Карточка скрыта'
+                : 'Комментарий модератора'}
+            </h3>
+            <p>{geotag.moderationComment}</p>
+          </div>
+        ) : null}
+
         {geotag ? (
           <GeotagForm
             key={geotag.id || geotagId}

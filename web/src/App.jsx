@@ -13,8 +13,12 @@ import EditGeotagPage from './pages/EditGeotagPage';
 import UserSearchPage from './pages/UserSearchPage';
 import UserProfilePage from './pages/UserProfilePage';
 import MessagesPage from './pages/MessagesPage';
+import RoutesPage from './pages/RoutesPage';
+import ModerationPage from './pages/ModerationPage';
+import NotificationsPage from './pages/NotificationsPage';
 import { useAuth } from './hooks/useAuth';
 import { useGeotags } from './hooks/useGeotags';
+import { getNotificationsRequest } from './api/notificationsApi';
 
 export default function App() {
   const {
@@ -40,6 +44,7 @@ export default function App() {
   const [mapFocusedPlace, setMapFocusedPlace] = useState(null);
   const [profileUser, setProfileUser] = useState(null);
   const [messageRecipientId, setMessageRecipientId] = useState(null);
+  const [notificationsUnreadCount, setNotificationsUnreadCount] = useState(0);
   const viewedGeotagIdsRef = useRef(new Set());
 
   const activeUser = profileUser || user;
@@ -53,6 +58,16 @@ export default function App() {
       .then((loadedPlaces) => setPlaces(loadedPlaces))
       .catch(() => {});
   }, [isAuthorized, loadFeed]);
+
+  useEffect(() => {
+    if (!isAuthorized) {
+      return;
+    }
+
+    getNotificationsRequest()
+      .then((data) => setNotificationsUnreadCount(data?.unread_count || 0))
+      .catch(() => {});
+  }, [isAuthorized]);
 
   const upsertPlace = (place) => {
     if (!place) return;
@@ -92,6 +107,7 @@ export default function App() {
     setMapFocusedPlace(null);
     setProfileUser(null);
     setMessageRecipientId(null);
+    setNotificationsUnreadCount(0);
     viewedGeotagIdsRef.current.clear();
   };
 
@@ -230,6 +246,29 @@ export default function App() {
             onOpenUserProfile={handleOpenUserProfile}
           />
         );
+      case 'notifications':
+        return (
+          <NotificationsPage
+            onOpenDetails={handleOpenDetails}
+            onNotificationsChanged={setNotificationsUnreadCount}
+          />
+        );
+      case 'moderation':
+        return (
+          <ModerationPage
+            user={user}
+            onOpenUserProfile={handleOpenUserProfile}
+          />
+        );
+      case 'routes':
+        return (
+          <RoutesPage
+            places={places}
+            onOpenDetails={handleOpenDetails}
+            onOpenOnMap={handleOpenOnMap}
+            onOpenUserProfile={handleOpenUserProfile}
+          />
+        );
       case 'user-profile':
         return selectedUserId ? (
           <UserProfilePage
@@ -298,6 +337,7 @@ export default function App() {
           currentPage={currentPage}
           onNavigate={handleNavigate}
           user={activeUser}
+          notificationsUnreadCount={notificationsUnreadCount}
         />
       )}
       {renderPage()}

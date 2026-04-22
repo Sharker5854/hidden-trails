@@ -51,6 +51,7 @@ class GeotagsService:
                 selectinload(Geotag.themes),
                 selectinload(Geotag.author),
                 selectinload(Geotag.likers),
+                selectinload(Geotag.last_moderated_by),
             )
             .where(Geotag.id == geotag_id)
         )
@@ -75,6 +76,9 @@ class GeotagsService:
             tips=form.tips,
             likes_count=0,
             views_count=0,
+            moderation_status="pending",
+            is_moderated=False,
+            moderator_comment=None,
         )
 
         validation_result = await self.yndx_gpt.validate_profanity_and_falsification(f"Название статьи: '{geotag.title}'.  Координаты: latitude={geotag.latitude}, longitude={geotag.longitude}. Основной текст статьи: '{geotag.text}'. Текст раздела статьи с предупреждениями для путешественников: '{geotag.warnings}'. Текст раздела статьи с советами для путешественников: '{geotag.tips}'.")
@@ -172,7 +176,9 @@ class GeotagsService:
             await self.db.execute(stmt)
 
         geotag.is_moderated = False
+        geotag.moderation_status = "pending"
         geotag.moderator_comment = None
+        geotag.last_moderated_by_id = None
         
         await self.db.commit()
         await self.db.refresh(geotag)
@@ -314,7 +320,7 @@ class GeotagsService:
             selectinload(Geotag.themes),
             selectinload(Geotag.comments),
             selectinload(Geotag.likers),
-        ).where(Geotag.is_moderated == True).order_by(
+        ).where(Geotag.moderation_status != "blocked").order_by(
             desc(
                 followed_new_bonus
                 + (main_priority * 1_000_000)
@@ -431,9 +437,11 @@ class GeotagsService:
             select(Geotag)
             .options(
                 selectinload(Geotag.themes),
-                selectinload(Geotag.comments)
+                selectinload(Geotag.comments),
+                selectinload(Geotag.author),
+                selectinload(Geotag.likers),
             )
-            .where(Geotag.is_moderated == True)
+            .where(Geotag.moderation_status != "blocked")
             .order_by(Geotag.created_at.desc())
         )
         result = await self.db.execute(stmt)
