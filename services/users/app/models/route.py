@@ -1,6 +1,7 @@
-from typing import Optional
+from typing import Optional, List
 from sqlalchemy import String, Integer, DateTime, Text, ForeignKey, Float
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.dialects.postgresql import JSONB
 from .base import Base
 from datetime import datetime
 
@@ -48,21 +49,21 @@ class Route(Base):
         back_populates="routes",
     )
 
-    start_point_id: Mapped[Optional[int]] = mapped_column(
+    start_point_id: Mapped[int] = mapped_column(
         ForeignKey("geotags.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
-    start_point: Mapped[Optional["Geotag"]] = relationship(
+    start_point: Mapped["Geotag"] = relationship(
         foreign_keys=[start_point_id]
     )
 
-    finish_point_id: Mapped[Optional[int]] = mapped_column(
+    finish_point_id: Mapped[int] = mapped_column(
         ForeignKey("geotags.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
-    finish_point: Mapped[Optional["Geotag"]] = relationship(
+    finish_point: Mapped["Geotag"] = relationship(
         foreign_keys=[finish_point_id]
     )
 
@@ -71,17 +72,17 @@ class Route(Base):
         back_populates="routes",
     )
 
-    transport_type: Mapped[Optional[str]] = mapped_column(
+    transport_type: Mapped[str] = mapped_column(
         String(50),
         nullable=True,
     )
 
-    distance_km: Mapped[Optional[float]] = mapped_column(
+    distance_km: Mapped[float] = mapped_column(
         Float,
         nullable=True,
     )
 
-    travel_time_min: Mapped[Optional[int]] = mapped_column(
+    travel_time_min: Mapped[int] = mapped_column(
         Integer,
         nullable=True,
     )
@@ -91,13 +92,9 @@ class Route(Base):
         nullable=True,
     )
 
-    # polyline как строка или JSON
-    polyline: Mapped[str] = mapped_column(
-        Text,
+    # список точек (lon, lat), по которым прокладывается маршрут
+    route_points: Mapped[List[List[float]]] = mapped_column(
+        JSONB, 
+        nullable=False, 
+        default=[]
     )
-
-    # побочные точки: отели, рестораны и т.д.
-    # side_points: Mapped[Optional[list]] = mapped_column(
-    #     JSONB,
-    #     nullable=True,
-    # )

@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int
     refresh_token_expire_days: int
 
+    # Caching
+    redis_url: str
+
     # Integrations | Yandex
     yandex_cloud_api_key: str
     yandex_cloud_folder_id: str
