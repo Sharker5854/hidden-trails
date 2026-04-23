@@ -39,6 +39,7 @@ def set_auth_cookies(response: Response, access_token: str, refresh_token: str) 
         access_token,
         httponly=True,
         max_age=15 * 60,
+        path="/",
         samesite="lax",
     )
     response.set_cookie(
@@ -46,6 +47,7 @@ def set_auth_cookies(response: Response, access_token: str, refresh_token: str) 
         refresh_token,
         httponly=True,
         max_age=7 * 86400,
+        path="/",
         samesite="lax",
     )
 
@@ -132,7 +134,6 @@ async def login(
 @router.post("/refresh")
 async def refresh(
     request: Request,
-    response: Response,
     auth_svc: AuthService = Depends(get_auth_service),
     users_svc: UsersService = Depends(get_users_service),
 ):
@@ -150,11 +151,16 @@ async def refresh(
             raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User not found.")
         
         new_access = auth_svc.create_access_token(user.id)
-        response.set_cookie(
-            "access_token", new_access, 
-            httponly=True, max_age=15*60, samesite="lax"
+        json_response = JSONResponse({"status": "refreshed"})
+        json_response.set_cookie(
+            "access_token",
+            new_access,
+            httponly=True,
+            max_age=15 * 60,
+            path="/",
+            samesite="lax",
         )
-        return {"status": "refreshed"}
+        return json_response
         
     except jwt.ExpiredSignatureError:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Refresh token expired.")
@@ -209,9 +215,6 @@ async def me_post(
     name: Optional[str] = Form(None),
     surname: Optional[str] = Form(None),
     theme_ids: Optional[List[int]] = Form(default=[]),
-    is_moder: bool = Form(False),
-    is_admin: bool = Form(False),
-    is_premium: bool = Form(False),
     avatar_file: Optional[UploadFile] = File(None, alias="avatar_url"),
 
     current_user: User = Depends(get_current_user)
@@ -223,9 +226,9 @@ async def me_post(
         "name": name,
         "surname": surname,
         "theme_ids": theme_ids,
-        "is_moder": is_moder,
-        "is_admin": is_admin,
-        "is_premium": is_premium,
+        "is_moder": current_user.is_moder,
+        "is_admin": current_user.is_admin,
+        "is_premium": current_user.is_premium,
     }
 
     try:
@@ -274,12 +277,23 @@ async def me_post(
     return serialize_user(updated_user)
 
 
+@router.post("/premium/toggle", response_model=UserPublic)
+async def toggle_premium(
+    users_svc: Annotated[UsersService, Depends(get_users_service)],
+    current_user: User = Depends(get_current_user),
+) -> UserPublic:
+    current_user.is_premium = not current_user.is_premium
+    await users_svc.db.commit()
+    await users_svc.db.refresh(current_user)
+    return serialize_user(current_user)
+
+
 
 
 @router.get("/logout")
 async def logout(response: Response):
-    response.delete_cookie("access_token")
-    response.delete_cookie("refresh_token")
+    response.delete_cookie("access_token", path="/")
+    response.delete_cookie("refresh_token", path="/")
     return {"status": "logged_out"}
 
 

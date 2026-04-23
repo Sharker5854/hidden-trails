@@ -5,6 +5,8 @@ from .route import Route
 from .achievments import Achievment
 from .comments import Comment
 from .messages import Conversation, Message
+from .moderation import ModerationAction
+from .notifications import Notification
 from .geotag_themes import geotag_themes
 from .user_achievments import user_achievments
 from .user_themes import user_themes
@@ -27,4 +29,6 @@ __all__ = [
     "Route",
     "Conversation",
     "Message",
+    "ModerationAction",
+    "Notification",
 ]

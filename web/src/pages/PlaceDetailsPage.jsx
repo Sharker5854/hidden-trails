@@ -52,6 +52,8 @@ export default function PlaceDetailsPage({
   onPlaceUpdated,
 }) {
   const [commentText, setCommentText] = useState('');
+  const [replyDrafts, setReplyDrafts] = useState({});
+  const [activeReplyId, setActiveReplyId] = useState(null);
   const [comments, setComments] = useState([]);
   const [commentsError, setCommentsError] = useState('');
   const [isCommentSubmitting, setIsCommentSubmitting] = useState(false);
@@ -112,6 +114,13 @@ export default function PlaceDetailsPage({
     setCommentText((prev) => `${prev}${emoji}`);
   };
 
+  const appendReplyEmoji = (commentId, emoji) => {
+    setReplyDrafts((prev) => ({
+      ...prev,
+      [commentId]: `${prev[commentId] || ''}${emoji}`,
+    }));
+  };
+
   const updatePlaceLikes = (nextLikes, nextIsLiked) => {
     setLikes(nextLikes);
     setIsLiked(nextIsLiked);
@@ -163,6 +172,33 @@ export default function PlaceDetailsPage({
 
       setComments((prev) => [normalizeComment(createdComment), ...prev]);
       setCommentText('');
+    } catch (error) {
+      setCommentsError(getErrorMessage(error));
+    } finally {
+      setIsCommentSubmitting(false);
+    }
+  };
+
+  const handleReplySubmit = async (event, parentComment) => {
+    event.preventDefault();
+
+    const text = (replyDrafts[parentComment.id] || '').trim();
+    if (!text || !place?.id) return;
+
+    setIsCommentSubmitting(true);
+    setCommentsError('');
+
+    try {
+      await createCommentRequest({
+        geotag_id: place.id,
+        text,
+        parent_id: parentComment.id,
+      });
+
+      const data = await getCommentsRequest(place.id);
+      setComments((data?.comments || []).map(normalizeComment));
+      setReplyDrafts((prev) => ({ ...prev, [parentComment.id]: '' }));
+      setActiveReplyId(null);
     } catch (error) {
       setCommentsError(getErrorMessage(error));
     } finally {
@@ -293,6 +329,17 @@ export default function PlaceDetailsPage({
             </div>
           ) : null}
 
+          {place?.moderationStatus === 'revision' || place?.moderationStatus === 'blocked' ? (
+            <div className="place-details__note place-details__note--warning">
+              <h3>
+                {place?.moderationStatus === 'blocked'
+                  ? 'Карточка скрыта модератором'
+                  : 'Нужна доработка'}
+              </h3>
+              <p>{place?.moderatorComment || 'Модератор оставил комментарий.'}</p>
+            </div>
+          ) : null}
+
           <p className="place-details__text">{safePlace.fullDescription}</p>
 
           {safePlace.warnings ? (
@@ -326,6 +373,57 @@ export default function PlaceDetailsPage({
                     onOpenUserProfile={onOpenUserProfile}
                   />
                   <p className="comment-card__text">{comment.text}</p>
+                  <div className="comment-card__actions">
+                    <button
+                      type="button"
+                      className="comment-card__reply-button"
+                      onClick={() =>
+                        setActiveReplyId((prev) => (prev === comment.id ? null : comment.id))
+                      }
+                    >
+                      Ответить
+                    </button>
+                  </div>
+
+                  {activeReplyId === comment.id ? (
+                    <form
+                      className="comment-form comment-form--reply"
+                      onSubmit={(event) => handleReplySubmit(event, comment)}
+                    >
+                      <textarea
+                        className="comment-form__textarea"
+                        placeholder={`Ответ для @${comment.author}`}
+                        value={replyDrafts[comment.id] || ''}
+                        onChange={(event) =>
+                          setReplyDrafts((prev) => ({
+                            ...prev,
+                            [comment.id]: event.target.value,
+                          }))
+                        }
+                        required
+                      />
+                      <div className="comment-form__bottom">
+                        <EmojiPicker onSelect={(emoji) => appendReplyEmoji(comment.id, emoji)} />
+                        <div className="comment-form__reply-actions">
+                          <button
+                            type="button"
+                            className="secondary-button"
+                            onClick={() => setActiveReplyId(null)}
+                          >
+                            Отмена
+                          </button>
+                          <button
+                            type="submit"
+                            className="primary-button comment-form__button"
+                            disabled={isCommentSubmitting}
+                          >
+                            {isCommentSubmitting ? 'Отправляем...' : 'Ответить'}
+                          </button>
+                        </div>
+                      </div>
+                    </form>
+                  ) : null}
+
                   {comment.replies.length > 0 ? (
                     <div className="comment-card__replies">
                       {comment.replies.map((reply) => (
@@ -335,6 +433,55 @@ export default function PlaceDetailsPage({
                             onOpenUserProfile={onOpenUserProfile}
                           />
                           <p className="comment-card__text">{reply.text}</p>
+                          <div className="comment-card__actions">
+                            <button
+                              type="button"
+                              className="comment-card__reply-button"
+                              onClick={() =>
+                                setActiveReplyId((prev) => (prev === reply.id ? null : reply.id))
+                              }
+                            >
+                              Ответить
+                            </button>
+                          </div>
+                          {activeReplyId === reply.id ? (
+                            <form
+                              className="comment-form comment-form--reply"
+                              onSubmit={(event) => handleReplySubmit(event, reply)}
+                            >
+                              <textarea
+                                className="comment-form__textarea"
+                                placeholder={`Ответ для @${reply.author}`}
+                                value={replyDrafts[reply.id] || ''}
+                                onChange={(event) =>
+                                  setReplyDrafts((prev) => ({
+                                    ...prev,
+                                    [reply.id]: event.target.value,
+                                  }))
+                                }
+                                required
+                              />
+                              <div className="comment-form__bottom">
+                                <EmojiPicker onSelect={(emoji) => appendReplyEmoji(reply.id, emoji)} />
+                                <div className="comment-form__reply-actions">
+                                  <button
+                                    type="button"
+                                    className="secondary-button"
+                                    onClick={() => setActiveReplyId(null)}
+                                  >
+                                    Отмена
+                                  </button>
+                                  <button
+                                    type="submit"
+                                    className="primary-button comment-form__button"
+                                    disabled={isCommentSubmitting}
+                                  >
+                                    {isCommentSubmitting ? 'Отправляем...' : 'Ответить'}
+                                  </button>
+                                </div>
+                              </div>
+                            </form>
+                          ) : null}
                         </article>
                       ))}
                     </div>

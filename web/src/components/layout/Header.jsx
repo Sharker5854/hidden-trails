@@ -1,13 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
 import { resolveAvatarUrl } from '../../utils/assets';
 
-export default function Header({ currentPage, onNavigate, user }) {
+export default function Header({
+  currentPage,
+  onNavigate,
+  user,
+  notificationsUnreadCount = 0,
+}) {
   const items = [
+    { key: 'routes', label: 'Маршруты' },
     { key: 'feed', label: 'Лента' },
     { key: 'map', label: 'Карта' },
     { key: 'users-search', label: 'Люди' },
     { key: 'messages', label: 'Сообщения' },
   ];
+  const navItems =
+    user?.is_moder || user?.is_admin
+      ? [...items, { key: 'moderation', label: 'Проверка' }]
+      : items;
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -50,8 +60,22 @@ export default function Header({ currentPage, onNavigate, user }) {
         </div>
 
         <div className="header__right">
+          <button
+            type="button"
+            className={`notifications-button ${
+              currentPage === 'notifications' ? 'notifications-button--active' : ''
+            }`}
+            onClick={() => onNavigate('notifications')}
+            aria-label="Уведомления"
+          >
+            <span aria-hidden="true">🔔</span>
+            {notificationsUnreadCount > 0 ? (
+              <b className="notifications-button__badge">{notificationsUnreadCount}</b>
+            ) : null}
+          </button>
+
           <nav className="nav">
-            {items.map((item) => (
+            {navItems.map((item) => (
               <button
                 key={item.key}
                 className={`nav__button ${

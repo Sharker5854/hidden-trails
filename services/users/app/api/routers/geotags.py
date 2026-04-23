@@ -1,19 +1,21 @@
 import uuid
 from datetime import datetime
-from typing import Optional, List, Annotated
 from pathlib import Path
+from typing import Annotated, List, Optional
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi import Path as QueryPath
-from fastapi import APIRouter, Request, Depends, Form, HTTPException, UploadFile, File, Query
-from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 from transliterate import translit
+
+from app.api.deps import get_current_user, get_geotags_service, get_themes_service
 from app.core.config import settings
 from app.models import User
-from app.schemas.geotags import GeotagPublic
-from app.schemas.geotags import GeotagCreateForm, GeotagUpdateForm
-from app.services.themes import ThemesService
+from app.schemas.geotags import GeotagCreateForm, GeotagPublic, GeotagUpdateForm
 from app.services.geotags import GeotagsService
+from app.services.themes import ThemesService
 from app.api.deps import get_current_user, get_themes_service, get_geotags_service
 
 
@@ -44,7 +46,6 @@ from app.api.deps import get_current_user, get_themes_service, get_geotags_servi
 # Разобраться почему на почту приходит ломаная ссылка +++
 
 
-
 router = APIRouter(prefix="/geotag", tags=["geotags"])
 templates = Jinja2Templates(directory="app/templates")
 
@@ -54,13 +55,16 @@ MAX_MEDIA_FILES = 7
 ALLOWED_MEDIA_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 
 
-async def save_geotag_media_files(media_files: Optional[List[UploadFile]], title: str) -> List[str]:
+async def save_geotag_media_files(
+    media_files: Optional[List[UploadFile]],
+    title: str,
+) -> List[str]:
     uploaded_files = [media_file for media_file in media_files or [] if media_file.filename]
 
     if len(uploaded_files) > MAX_MEDIA_FILES:
         raise HTTPException(status_code=400, detail="Можно прикрепить максимум 7 фото.")
 
-    media_file_paths = []
+    media_file_paths: List[str] = []
     for media_file in uploaded_files:
         if media_file.content_type not in ALLOWED_MEDIA_TYPES:
             raise HTTPException(status_code=400, detail="Можно прикреплять только фото.")
@@ -68,8 +72,8 @@ async def save_geotag_media_files(media_files: Optional[List[UploadFile]], title
         ext = Path(media_file.filename).suffix or ".jpg"
         safe_title = translit(
             title.lower(),
-            language_code='ru',
-            reversed=True
+            language_code="ru",
+            reversed=True,
         ).replace(" ", "_")[:50]
         filename = f"geotag_{safe_title}_{uuid.uuid4().hex}{ext}"
         disk_path = MEDIA_DIR / filename
@@ -82,14 +86,21 @@ async def save_geotag_media_files(media_files: Optional[List[UploadFile]], title
     return media_file_paths
 
 
+def can_view_hidden_geotag(user: User, author_id: int) -> bool:
+    return user.id == author_id or user.is_moder or user.is_admin
+
+
 @router.get("/show/all")
-async def get_geotag(
+async def get_all_geotags(
     geotags_svc: GeotagsService = Depends(get_geotags_service),
     current_user: User = Depends(get_current_user),
 ):
     geotags = await geotags_svc.get_all_moderated_geotags()
-
-    return geotags
+    payload = [
+        GeotagPublic.from_orm(geotag, current_user_id=current_user.id).model_dump(mode="json")
+        for geotag in geotags
+    ]
+    return JSONResponse(status_code=200, content={"geotags": payload})
 
 
 @router.get("/show/{geotag_id}")
@@ -100,17 +111,23 @@ async def get_geotag(
     geotags_svc: GeotagsService = Depends(get_geotags_service),
     current_user: User = Depends(get_current_user),
 ):
+    geotag_row = await geotags_svc.get_by_id(geotag_id)
+    if not geotag_row:
+        raise HTTPException(status_code=404, detail="Геометка не найдена.")
+
+    if (
+        geotag_row.moderation_status == "blocked"
+        and not can_view_hidden_geotag(current_user, geotag_row.author_id)
+    ):
+        raise HTTPException(status_code=404, detail="Геометка не найдена.")
+
     geotag = await geotags_svc.get_geotag_public(
         geotag_id,
-        increment_view=track_view,
+        increment_view=track_view and geotag_row.moderation_status != "blocked",
         current_user_id=current_user.id,
     )
-
     if not geotag:
         raise HTTPException(status_code=404, detail="Геометка не найдена.")
-    
-    if not await geotags_svc.is_geotag_moderated(geotag_id):
-        raise HTTPException(status_code=404, detail="Геометка ещё не прошла модерацию.")
 
     return geotag
 
@@ -138,16 +155,13 @@ async def create_geotag_post(
     current_user: User = Depends(get_current_user),
     geotags_svc: GeotagsService = Depends(get_geotags_service),
     themes_svc: ThemesService = Depends(get_themes_service),
-    
     title: str = Form(...),
     text: Optional[str] = Form(None),
     latitude: float = Form(...),
     longitude: float = Form(...),
     warnings: Optional[str] = Form(None),
     tips: Optional[str] = Form(None),
-    
     theme_ids: Optional[List[int]] = Form(...),
-    
     media_files: Optional[List[UploadFile]] = File(None, alias="media_files"),
 ):
     form_data = {
@@ -159,31 +173,27 @@ async def create_geotag_post(
         "tips": tips,
         "theme_ids": theme_ids,
     }
-    
+
     try:
         validated_form = GeotagCreateForm.model_validate(form_data)
-    except ValueError as e:
-        themes = await themes_svc.get_all_themes()
-        raise HTTPException(status_code=400, detail=str(e))
+    except ValueError as exc:
+        await themes_svc.get_all_themes()
+        raise HTTPException(status_code=400, detail=str(exc))
 
     media_file_paths = await save_geotag_media_files(media_files, form_data["title"])
 
-    
     try:
         geotag = await geotags_svc.create_geotag(
             form=validated_form,
             author_id=current_user.id,
             media_files=media_file_paths,
         )
-    except ValueError as e:
-        themes = await themes_svc.get_all_themes()
-        raise HTTPException(status_code=400, detail=str(e))
-    
+    except ValueError as exc:
+        await themes_svc.get_all_themes()
+        raise HTTPException(status_code=400, detail=str(exc))
+
     geotag = await geotags_svc.get_by_id(geotag.id)
     return GeotagPublic.from_orm(geotag, current_user_id=current_user.id)
-
-
-
 
 
 @router.get("/update/{geotag_id}")
@@ -193,7 +203,6 @@ async def update_geotag(
     geotag_id: int,
     geotags_svc: Annotated[GeotagsService, Depends(get_geotags_service)],
     themes_svc: Annotated[ThemesService, Depends(get_themes_service)],
-    
     title: Optional[str] = Form(None),
     text: Optional[str] = Form(None),
     latitude: Optional[float] = Form(None),
@@ -201,20 +210,18 @@ async def update_geotag(
     warnings: Optional[str] = Form(None),
     tips: Optional[str] = Form(None),
     theme_ids: Optional[List[int]] = Form(None),
-    
     media_files: Optional[List[UploadFile]] = File(None, alias="media_files"),
     current_user: User = Depends(get_current_user),
 ):
-    
     geotag = await geotags_svc.get_by_id(geotag_id)
     if not geotag:
         raise HTTPException(404, "Геометка не найдена!")
-    
-    if not geotag.author_id == current_user.id:
-        raise HTTPException(401, "Нельзя изменять геометки принадлежащие другим пользователям.")
+
+    if geotag.author_id != current_user.id:
+        raise HTTPException(401, "Нельзя изменять геометки, принадлежащие другим пользователям.")
 
     all_themes = await themes_svc.get_all_themes()
-    
+
     if request.method == "GET":
         return templates.TemplateResponse(
             "geotags/update.html",
@@ -222,10 +229,10 @@ async def update_geotag(
                 "request": request,
                 "geotag": geotag,
                 "themes": all_themes,
-                "selected_theme_ids": [t.id for t in geotag.themes],
+                "selected_theme_ids": [theme.id for theme in geotag.themes],
             },
         )
-    
+
     form_data = {
         "title": title,
         "text": text,
@@ -235,61 +242,57 @@ async def update_geotag(
         "tips": tips,
         "theme_ids": theme_ids,
     }
-    
+
     try:
         validated_form = GeotagUpdateForm.model_validate(form_data)
-    except ValueError as e:
+    except ValueError as exc:
         return templates.TemplateResponse(
             "geotags/update.html",
             {
                 "request": request,
                 "geotag": geotag,
                 "themes": all_themes,
-                "selected_theme_ids": [t.id for t in geotag.themes],
-                "error": f"Ошибка формы: {e}",
+                "selected_theme_ids": [theme.id for theme in geotag.themes],
+                "error": f"Ошибка формы: {exc}",
             },
             status_code=400,
         )
-    
-    raw_media = getattr(geotag, 'media_files', [])
-    current_media = []
+
+    raw_media = getattr(geotag, "media_files", [])
+    current_media: List[str] = []
     if isinstance(raw_media, list):
         for item in raw_media:
             if isinstance(item, list):
-                current_media.extend([str(x) for x in item if x])
+                current_media.extend([str(value) for value in item if value])
             elif isinstance(item, str) and item.strip():
                 current_media.append(item.strip())
 
-    new_media_paths = []
-    
     new_media_paths = await save_geotag_media_files(media_files, form_data["title"])
-    
     updated_media = current_media + new_media_paths
     if len(updated_media) > MAX_MEDIA_FILES:
         raise HTTPException(status_code=400, detail="Можно прикрепить максимум 7 фото.")
-    
+
     try:
         updated_geotag = await geotags_svc.update_geotag(
             geotag=geotag,
             form=validated_form,
             media_files=updated_media,
         )
-    except ValueError as e:
+    except ValueError as exc:
         return templates.TemplateResponse(
             "geotags/update.html",
             {
                 "request": request,
                 "geotag": geotag,
                 "themes": all_themes,
-                "selected_theme_ids": [t.id for t in geotag.themes],
-                "error": str(e),
+                "selected_theme_ids": [theme.id for theme in geotag.themes],
+                "error": str(exc),
             },
             status_code=400,
         )
-    
+
     updated_geotag = await geotags_svc.get_by_id(updated_geotag.id)
     return GeotagPublic.from_orm(updated_geotag, current_user_id=current_user.id)
-
 
 
 @router.post("/save/{geotag_id}")
@@ -298,14 +301,11 @@ async def save_geotag(
     geotags_svc: Annotated[GeotagsService, Depends(get_geotags_service)],
     user: User = Depends(get_current_user),
 ):
-    if not await geotags_svc.is_geotag_moderated(geotag_id):
-        raise HTTPException(status_code=404, detail="Нельзя сохранить геометку, которая еще не прошла модерацию.")
-    
-    result = await geotags_svc.save_geotag(
-        user_id=user.id,
-        geotag_id=geotag_id
-    )
-    
+    geotag = await geotags_svc.get_by_id(geotag_id)
+    if not geotag or geotag.moderation_status == "blocked":
+        raise HTTPException(status_code=404, detail="Геометка не найдена.")
+
+    result = await geotags_svc.save_geotag(user_id=user.id, geotag_id=geotag_id)
     return JSONResponse(status_code=200, content=result)
 
 
@@ -315,16 +315,12 @@ async def unsave_geotag(
     geotags_svc: Annotated[GeotagsService, Depends(get_geotags_service)],
     user: User = Depends(get_current_user),
 ):
-    if not await geotags_svc.is_geotag_moderated(geotag_id):
-        raise HTTPException(status_code=404, detail="Нельзя удалить из сохраненных геометку, которая еще не прошла модерацию.")
+    geotag = await geotags_svc.get_by_id(geotag_id)
+    if not geotag or geotag.moderation_status == "blocked":
+        raise HTTPException(status_code=404, detail="Геометка не найдена.")
 
-    result = await geotags_svc.unsave_geotag(
-        user_id=user.id,
-        geotag_id=geotag_id
-    )
-    
+    result = await geotags_svc.unsave_geotag(user_id=user.id, geotag_id=geotag_id)
     return JSONResponse(status_code=200, content=result)
-
 
 
 @router.get("/feed")
@@ -339,20 +335,17 @@ async def get_feed(
         limit=limit,
         following_since=following_since,
     )
-    
-    public_geotags: List[GeotagPublic] = jsonable_encoder([
-        GeotagPublic.from_orm(gt, current_user_id=user.id)
-        for gt in feed
-    ])
 
+    public_geotags: List[GeotagPublic] = jsonable_encoder(
+        [GeotagPublic.from_orm(geotag, current_user_id=user.id) for geotag in feed]
+    )
     return JSONResponse(
-        status_code=200, 
+        status_code=200,
         content={
             "geotags": public_geotags,
             "total": len(public_geotags),
-        }
+        },
     )
-
 
 
 @router.post("/like/{geotag_id}")
@@ -361,11 +354,13 @@ async def like_geotag(
     geotags_svc: GeotagsService = Depends(get_geotags_service),
     user: User = Depends(get_current_user),
 ):
-    if not await geotags_svc.is_geotag_moderated(geotag_id):
-        raise HTTPException(status_code=404, detail="Нельзя лайкнуть геометку, которая еще не прошла модерацию.")
-    
+    geotag = await geotags_svc.get_by_id(geotag_id)
+    if not geotag or geotag.moderation_status == "blocked":
+        raise HTTPException(status_code=404, detail="Геометка не найдена.")
+
     result = await geotags_svc.like_geotag(user.id, geotag_id)
     return JSONResponse(status_code=200, content=result)
+
 
 @router.post("/unlike/{geotag_id}")
 async def unlike_geotag(
@@ -373,8 +368,9 @@ async def unlike_geotag(
     geotags_svc: GeotagsService = Depends(get_geotags_service),
     user: User = Depends(get_current_user),
 ):
-    if not await geotags_svc.is_geotag_moderated(geotag_id):
-        raise HTTPException(status_code=404, detail="Нельзя убрать лайк у геометки, которая еще не прошла модерацию.")
+    geotag = await geotags_svc.get_by_id(geotag_id)
+    if not geotag or geotag.moderation_status == "blocked":
+        raise HTTPException(status_code=404, detail="Геометка не найдена.")
 
     result = await geotags_svc.unlike_geotag(user.id, geotag_id)
     return JSONResponse(status_code=200, content=result)

@@ -22,6 +22,9 @@ class GeotagPublic(BaseModel):
     likes_count: int
     views_count: int
     liked_by_current_user: bool = False
+    moderation_status: str = "pending"
+    moderator_comment: Optional[str] = None
+    last_moderated_by_id: Optional[int] = None
     
     @classmethod
     def from_orm(cls, geotag: Geotag, current_user_id: Optional[int] = None) -> "GeotagPublic":
@@ -61,6 +64,9 @@ class GeotagPublic(BaseModel):
                 current_user_id is not None
                 and any(user.id == current_user_id for user in likers)
             ),
+            moderation_status=getattr(geotag, "moderation_status", "pending"),
+            moderator_comment=geotag.moderator_comment,
+            last_moderated_by_id=getattr(geotag, "last_moderated_by_id", None),
         )
 
 

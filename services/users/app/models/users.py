@@ -74,6 +74,7 @@ class User(Base):
     geotags: Mapped[List["Geotag"]] = relationship(
         "Geotag", 
         back_populates="author",
+        foreign_keys="Geotag.author_id",
         cascade="all, delete-orphan"
     )
 
@@ -106,6 +107,38 @@ class User(Base):
         "Comment", 
         back_populates="author",
         cascade="all, delete-orphan"
+    )
+
+    moderation_actions: Mapped[List["ModerationAction"]] = relationship(
+        "ModerationAction",
+        foreign_keys="ModerationAction.moderator_id",
+        back_populates="moderator",
+        cascade="all, delete-orphan",
+    )
+
+    moderation_penalties: Mapped[List["ModerationAction"]] = relationship(
+        "ModerationAction",
+        foreign_keys="ModerationAction.author_id",
+        back_populates="author",
+    )
+
+    moderated_geotags: Mapped[List["Geotag"]] = relationship(
+        "Geotag",
+        foreign_keys="Geotag.last_moderated_by_id",
+        back_populates="last_moderated_by",
+    )
+
+    notifications: Mapped[List["Notification"]] = relationship(
+        "Notification",
+        foreign_keys="Notification.user_id",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
+    sent_notifications: Mapped[List["Notification"]] = relationship(
+        "Notification",
+        foreign_keys="Notification.actor_id",
+        back_populates="actor",
     )
 
 

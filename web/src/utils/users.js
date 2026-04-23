@@ -9,6 +9,8 @@ export function normalizeUserMini(user) {
     nickname: user.nickname || 'unknown',
     avatarUrl: resolveAvatarUrl(user.avatar_url),
     rating: user.rating ?? 0,
+    isModer: Boolean(user.is_moder),
+    isAdmin: Boolean(user.is_admin),
   };
 }
 
