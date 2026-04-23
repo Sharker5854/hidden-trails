@@ -7,6 +7,7 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from .geotags import GeotagsService
 from .messages import MessagesService
+from app.core.config import settings
 from app.integrations.geoapify import Geoapify
 from app.models.geotags import Geotag
 from app.models.route import Route
@@ -26,35 +27,79 @@ class RoutesService:
         self.db = db
         self.geotags_svc = GeotagsService(db)
         self.geoapify = Geoapify()
+        self.redis = redis.from_url(settings.redis_url)
     
+
+
     async def calculate_route(
         self,
         geotag_ids: List[int],
-        mode: str
+        mode: str,
+        cache_id: str = None
     ) -> RouteResponse:
         geotags = await self._get_ordered_geotags(geotag_ids)
         coords = [[str(g.latitude), str(g.longitude)] for g in geotags]
 
+        if not cache_id:
+            cache_id = f"route:{ ':'.join(map(lambda x: ",".join(x), coords)) }:{mode}"
+
+        cached_route_data = await self._try_route_from_cache(cache_id)
+
+        if cached_route_data:
+            return cached_route_data
+        
         return await self._calculate_route_by_coords(coords, mode)
+
+
 
     async def calculate_route_by_points(
         self,
         points: List[RoutePoint],
         mode: str,
+        cache_id: str = None
     ) -> RouteResponse:
         coords = self._route_points_to_geoapify_coords(points)
+
+        if not cache_id:
+            cache_id = f"route:{ ':'.join(map(lambda x: ",".join(x), coords)) }:{mode}"
+
+        cached_route_data = await self._try_route_from_cache(cache_id)
+
+        if cached_route_data:
+            return cached_route_data
+        
         return await self._calculate_route_by_coords(coords, mode)
+        
+        
+
+
 
     async def _calculate_route_by_coords(
         self,
         coords: List[List[str]],
         mode: str,
-    ) -> RouteResponse:
+    ) -> RouteResponse:      
         route_data = await self.geoapify.get_route_data(coords, mode)
+
+        redis_cache_id = f"route:{ ':'.join(map(lambda x: ",".join(x), coords)) }:{mode}"
+        print("AAAAAAAAAAAAAAAAA", redis_cache_id)
+        await self.redis.setex(redis_cache_id, 1800, json.dumps(route_data))
+
+        route_data["cache_id"] = redis_cache_id
+
         response_data = RouteResponse.model_validate(route_data)
 
         return response_data
     
+
+    async def _try_route_from_cache(self, cache_id: str) -> RouteResponse:
+        route_data = await self.redis.get(cache_id)
+        if not route_data:
+            return None
+        print(f"AAAAAAAAAAAAAAAAAAAAAAAAAAAAA ВЗЯЛ ИЗ КЭШААААА ЮХУУУУУУУУУУ | {cache_id}")
+        return RouteResponse.model_validate(json.loads(route_data))
+
+
 
     async def get_available_modes(
         self,
@@ -79,6 +124,8 @@ class RoutesService:
 
         return response_data
 
+
+
     async def list_my_routes(self, user_id: int) -> List[SavedRoutePublic]:
         stmt = (
             select(Route)
@@ -89,6 +136,8 @@ class RoutesService:
         result = await self.db.execute(stmt)
         routes = result.scalars().all()
         return [await self._route_public(route, user_id) for route in routes]
+
+
 
     async def list_public_routes(self, current_user_id: int) -> List[SavedRoutePublic]:
         stmt = (
@@ -101,9 +150,13 @@ class RoutesService:
         routes = result.scalars().all()
         return [await self._route_public(route, current_user_id) for route in routes]
 
+
+
     async def get_route(self, route_id: int, current_user_id: int) -> SavedRoutePublic:
         route = await self._get_visible_route(route_id, current_user_id)
         return await self._route_public(route, current_user_id)
+
+
 
     async def save_route(
         self,
@@ -133,7 +186,7 @@ class RoutesService:
             distance_km=calculated.distance_km,
             travel_time_min=calculated.duration_min,
             is_public=payload.is_public,
-            polyline=json.dumps(calculated.coordinates),
+            route_points=json.dumps(calculated.coordinates),
         )
         self.db.add(route)
         await self.db.flush()
@@ -143,6 +196,8 @@ class RoutesService:
         await self.db.refresh(route)
 
         return await self._route_public(await self._get_owned_route(route.id, user_id), user_id)
+
+
 
     async def publish_route(
         self,
@@ -154,6 +209,8 @@ class RoutesService:
         await self.db.commit()
         await self.db.refresh(route)
         return await self._route_public(route, user_id)
+
+
 
     async def share_route(
         self,
@@ -177,6 +234,8 @@ class RoutesService:
         )
         return text
 
+
+
     def _route_points_to_geoapify_coords(self, points: List[RoutePoint]) -> List[List[str]]:
         if len(points) < 2:
             raise HTTPException(
@@ -188,6 +247,8 @@ class RoutesService:
             [str(point.latitude), str(point.longitude)]
             for point in points
         ]
+
+
 
     async def _get_ordered_geotags(self, geotag_ids: List[int], min_count: int = 2) -> List[Geotag]:
         if len(geotag_ids) < min_count:
@@ -214,6 +275,9 @@ class RoutesService:
 
         return [geotags_by_id[geotag_id] for geotag_id in geotag_ids]
 
+
+
+
     async def _replace_route_geotags(self, route_id: int, geotag_ids: List[int]) -> None:
         await self.db.execute(delete(route_geotags).where(route_geotags.c.route_id == route_id))
         if not geotag_ids:
@@ -230,6 +294,9 @@ class RoutesService:
             ],
         )
 
+
+
+
     async def _get_owned_route(self, route_id: int, user_id: int) -> Route:
         stmt = (
             select(Route)
@@ -242,6 +309,9 @@ class RoutesService:
             raise HTTPException(status_code=404, detail="Route not found.")
         return route
 
+
+
+
     async def _get_visible_route(self, route_id: int, user_id: int) -> Route:
         stmt = (
             select(Route)
@@ -253,6 +323,9 @@ class RoutesService:
         if not route or (route.author_id != user_id and not route.is_public):
             raise HTTPException(status_code=404, detail="Route not found.")
         return route
+
+
+
 
     async def _get_route_geotags(self, route_id: int) -> List[Geotag]:
         stmt = (
@@ -269,9 +342,12 @@ class RoutesService:
         result = await self.db.execute(stmt)
         return result.scalars().all()
 
+
+
+
     async def _route_public(self, route: Route, current_user_id: int) -> SavedRoutePublic:
         geotags = await self._get_route_geotags(route.id)
-        coordinates = json.loads(route.polyline or "[]")
+        coordinates = json.loads(route.route_points or "[]")
         return SavedRoutePublic(
             id=route.id,
             title=route.title,

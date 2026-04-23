@@ -35,6 +35,7 @@ class RouteMode(str, Enum):
 class RouteRequest(BaseModel):
     geotag_ids: List[int]
     mode: RouteMode = RouteMode.DRIVE
+    cache_id: Optional[str] = None
 
 
 class RoutePoint(BaseModel):
@@ -45,6 +46,7 @@ class RoutePoint(BaseModel):
 class RoutePointsRequest(BaseModel):
     points: List[RoutePoint]
     mode: RouteMode = RouteMode.DRIVE
+    cache_id: Optional[str] = None
 
 
 class RouteResponse(BaseModel):
@@ -52,6 +54,7 @@ class RouteResponse(BaseModel):
     distance_km: float
     duration_min: int
     mode: RouteMode
+    cache_id: Optional[str] = None
 
 
 class AvailableModesRequest(BaseModel):

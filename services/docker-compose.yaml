@@ -21,6 +21,19 @@ services:
       start_period: 40s
 
 
+  frontend:
+    build:
+      context: ../web
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    environment:
+      - VITE_API_BASE_URL=http://users:8000
+      - VITE_MAPTILER_KEY=${MAPTILER_KEY}
+    depends_on:
+      - users
+    restart: unless-stopped
+
   postgres:
     image: postgres:17.9
     env_file: .env
