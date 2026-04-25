@@ -19,6 +19,7 @@ from app.schemas.routes import (
     SavedRouteCreate,
     SavedRoutePublic,
     SavedRoutesListResponse,
+    DeleteRouteResponse
 )
 from app.services.geotags import GeotagsService
 from app.services.routes import RoutesService
@@ -100,13 +101,28 @@ async def save_route(
     return await routes_svc.save_route(premium_user.id, request)
 
 
+
+
+
+@router.post("/delete/{route_id}", response_model=DeleteRouteResponse)
+async def delete_route(
+    route_id: int,
+    routes_svc: RoutesService = Depends(get_routes_service),
+    premium_user: User = Depends(get_current_premium_user)
+):
+    return await routes_svc.delete_route(premium_user.id, route_id)
+
+
+
+
+
 @router.post("/{route_id}/publish", response_model=SavedRoutePublic)
 async def publish_route(
     route_id: int,
     routes_svc: RoutesService = Depends(get_routes_service),
-    user: User = Depends(get_current_user),
+    premium_user: User = Depends(get_current_premium_user),
 ):
-    return await routes_svc.publish_route(route_id, user.id)
+    return await routes_svc.publish_route(route_id, premium_user.id)
 
 
 @router.post("/{route_id}/share", response_model=RouteShareResponse)

@@ -8,7 +8,7 @@ from app.core.config import settings
 class Geoapify:
     def __init__(self):
         self.__api_key = settings.geoapify_api_key
-        self.httpx_client = HttpxClient(host="https://api.geoapify.com")
+        self.httpx_client = HttpxClient(host="https://api.geoapify.com", timeout=30)
 
     async def get_route_data(
         self,

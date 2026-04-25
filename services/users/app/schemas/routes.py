@@ -100,3 +100,9 @@ class RouteShareRequest(BaseModel):
 
 class RouteShareResponse(BaseModel):
     message: str
+
+
+class DeleteRouteResponse(BaseModel):
+    status: str = "deleted"
+    route_id: int
+    route_title: Optional[str] = None

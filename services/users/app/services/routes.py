@@ -19,6 +19,7 @@ from app.schemas.routes import (
     RouteResponse,
     SavedRouteCreate,
     SavedRoutePublic,
+    DeleteRouteResponse
 )
 
 
@@ -197,6 +198,22 @@ class RoutesService:
 
         return await self._route_public(await self._get_owned_route(route.id, user_id), user_id)
 
+
+    async def delete_route(
+        self,
+        user_id: int,
+        route_id: int
+    ) -> DeleteRouteResponse:
+        route = await self._get_owned_route(route_id, user_id)
+        route_title = route.title
+        
+        await self.db.delete(route)
+        await self.db.commit()
+
+        return DeleteRouteResponse(
+            route_id=route_id,
+            route_title=route_title
+        )
 
 
     async def publish_route(
