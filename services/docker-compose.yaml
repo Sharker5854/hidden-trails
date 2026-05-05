@@ -1,9 +1,41 @@
 services:
-  users:
-    build: users/.
-    env_file: .env
+
+  traefik:
+    image: traefik:v3.7.0-rc.3
+    restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "80:80"       # HTTP → HTTPS redirect
+      - "443:443"     # HTTPS + SSL
+      - "8088:8088"   # Traefik Dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro  # Видит контейнеры!
+      - ./traefik/acme.json:/acme.json                 # SSL сертификаты!
+    command:
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entryPoint.to=websecure
+      - --entrypoints.web.http.redirections.entryPoint.scheme=https
+      
+      
+      - --entrypoints.websecure.address=:443
+      
+      - --providers.docker=true
+      - --providers.docker.exposedByDefault=false
+      - --providers.docker.network=traefik-public
+      
+      - --certificatesresolvers.myresolver.acme.tlschallenge=true
+      - --certificatesresolvers.myresolver.acme.email=vovcha5854@gmail.com
+      - --certificatesresolvers.myresolver.acme.storage=/acme.json
+      
+      - --log.level=DEBUG
+      - --accesslog=true
+    networks:
+      - traefik-public
+
+
+
+  api:
+    build: users/.
+    env_file: .env 
     volumes:
       - ./users/app:/app/app
       - ./users/alembic:/app/alembic
@@ -19,6 +51,24 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`api.hidden-trails.ru`)"
+      - "traefik.http.routers.api.priority=100"
+      - "traefik.http.routers.api.entrypoints=websecure"
+      - "traefik.http.routers.api.tls.certresolver=myresolver"
+      - "traefik.http.services.api.loadbalancer.server.port=8000"
+
+      - "traefik.docker.network=traefik-public"
+
+      - "traefik.http.middlewares.api-cors.headers.accesscontrolalloworiginlist=hidden-trails.ru"
+      - "traefik.http.middlewares.api-cors.headers.accesscontrolallowmethods=GET,POST,PUT,DELETE,OPTIONS,PATCH"
+      - "traefik.http.middlewares.api-cors.headers.accesscontrolallowheaders=*"
+      - "traefik.http.middlewares.api-cors.headers.accesscontrolexposeheaders=Content-Length"
+      - "traefik.http.routers.api.middlewares=api-cors"
+    networks:
+      - traefik-public
+      - default
 
 
   frontend:
@@ -27,12 +77,20 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8080:80"
-    environment:
-      - VITE_API_BASE_URL=http://users:8000
-      - VITE_MAPTILER_KEY=${MAPTILER_KEY}
+    env_file: ../web/.env
     depends_on:
-      - users
+      - api
     restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`hidden-trails.ru`)"
+      - "traefik.http.routers.frontend.priority=10"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=myresolver"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+    networks:
+      - traefik-public
+
 
   postgres:
     image: postgres:17.9
@@ -46,6 +104,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - default
 
   
 
@@ -61,9 +121,14 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    networks:
+      - default
 
 
-
+networks:
+  traefik-public:
+    driver: bridge
+  default: 
 
 
 volumes:
