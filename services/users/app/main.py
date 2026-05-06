@@ -22,18 +22,13 @@ app = FastAPI(title="Hidden Trails | Users", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:8080",
-        "http://127.0.0.1:8080",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:5174",
-        "http://127.0.0.1:5174",
+        # "http://localhost:8000",
+        # "http://127.0.0.1:8000",
         
-        "http://159.194.220.119:8080",
-        "http://frontend:80",
-        "http://frontend:8080",
+        # "http://frontend:80",
+        # "http://frontend:8080",
 
-        "https://hidden-trails.ru"
+        "https://hidden-trails.ru",
     ],
     allow_origin_regex=r"^http://(localhost|127\.0\.0\.1):\d+$",
     allow_credentials=True,
