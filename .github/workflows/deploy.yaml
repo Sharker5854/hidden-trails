@@ -1,0 +1,23 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Stop containers
+        run: docker compose down
+        working-directory: /root/hidden-trails/hidden-trails/services
+
+      - name: Pull latest code
+        run: git pull
+        working-directory: /root/hidden-trails/hidden-trails
+
+      - name: Build and start stack
+        run: docker compose up --build -d
+        working-directory: /root/hidden-trails/hidden-trails/services
