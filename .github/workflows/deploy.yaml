@@ -18,6 +18,6 @@ jobs:
         run: git pull
         working-directory: /root/hidden-trails/hidden-trails
 
-      - name: Build and start stack
+      - name: Build and start containers
         run: docker compose up --build -d
         working-directory: /root/hidden-trails/hidden-trails/services
