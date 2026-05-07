@@ -28,17 +28,17 @@ async def search_users(
     )
 
 
-# @router.get("/top")
-# async def get_top_users(
-#     limit: int = Query(7, ge=1, le=20),
-#     user: User = Depends(get_current_user),
-#     users_svc: UsersService = Depends(get_users_service),
-# ):
-#     users = await users_svc.get_top_users(limit=limit)
-#     return JSONResponse(
-#         status_code=200,
-#         content={"users": [item.model_dump(mode="json") for item in users]},
-#     )
+@router.get("/top")
+async def get_top_users(
+    limit: int = Query(7, ge=1, le=20),
+    user: User = Depends(get_current_user),
+    users_svc: UsersService = Depends(get_users_service),
+):
+    users = await users_svc.get_top_users(limit=limit)
+    return JSONResponse(
+        status_code=200,
+        content={"users": [item.model_dump(mode="json") for item in users]},
+    )
 
 
 @router.get("/list")
