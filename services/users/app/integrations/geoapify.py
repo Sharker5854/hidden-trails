@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 from fastapi import HTTPException
 from .utils import HttpxClient
 from app.core.config import settings
@@ -12,7 +12,7 @@ class Geoapify:
 
     async def get_route_data(
         self,
-        coordinates: List[List[str, str]],
+        coordinates: List[Tuple[str, str]],
         mode: str   
     ) -> str:
         if not self.__api_key:
