@@ -41,7 +41,19 @@ jobs:
           cd /root/hidden-trails/hidden-trails/services
           docker compose logs --tail=150 traefik
 
-      - name: Alembic version
+      - name: Postgres logs
         run: |
           cd /root/hidden-trails/hidden-trails/services
+          docker compose logs --tail=180 postgres
+
+      - name: Redis logs
+        run: |
+          cd /root/hidden-trails/hidden-trails/services
+          docker compose logs --tail=120 redis
+
+      - name: Alembic version
+        continue-on-error: true
+        run: |
+          cd /root/hidden-trails/hidden-trails/services
+          docker compose ps postgres
           docker compose exec -T postgres psql -U postgres -d hidden-trails -c "select version_num from alembic_version;"
