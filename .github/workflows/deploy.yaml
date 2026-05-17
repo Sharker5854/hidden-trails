@@ -4,20 +4,25 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: self-hosted
 
     steps:
-      - name: Stop containers
-        run: docker compose down
-        working-directory: /root/hidden-trails/hidden-trails/services
-
-      - name: Pull latest code
-        run: git pull
+      - name: Sync code
+        run: |
+          git fetch origin main
+          git reset --hard origin/main
+          git status --short --branch
+          git rev-parse --short HEAD
         working-directory: /root/hidden-trails/hidden-trails
 
       - name: Build and start containers
         run: docker compose up --build -d
+        working-directory: /root/hidden-trails/hidden-trails/services
+
+      - name: Docker status
+        run: docker compose ps
         working-directory: /root/hidden-trails/hidden-trails/services
