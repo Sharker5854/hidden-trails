@@ -1,0 +1,47 @@
+name: Diagnostics
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnostics:
+    runs-on: self-hosted
+
+    steps:
+      - name: Host info
+        run: |
+          hostname
+          whoami
+          pwd
+
+      - name: Current commit
+        run: |
+          cd /root/hidden-trails/hidden-trails
+          git status --short --branch
+          git rev-parse --short HEAD
+          git log --oneline -5
+
+      - name: Docker status
+        run: |
+          cd /root/hidden-trails/hidden-trails/services
+          docker compose ps
+
+      - name: API logs
+        run: |
+          cd /root/hidden-trails/hidden-trails/services
+          docker compose logs --tail=250 api
+
+      - name: Frontend logs
+        run: |
+          cd /root/hidden-trails/hidden-trails/services
+          docker compose logs --tail=120 frontend
+
+      - name: Traefik logs
+        run: |
+          cd /root/hidden-trails/hidden-trails/services
+          docker compose logs --tail=150 traefik
+
+      - name: Alembic version
+        run: |
+          cd /root/hidden-trails/hidden-trails/services
+          docker compose exec -T postgres psql -U postgres -d hidden-trails -c "select version_num from alembic_version;"
