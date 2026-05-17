@@ -56,4 +56,4 @@ jobs:
         run: |
           cd /root/hidden-trails/hidden-trails/services
           docker compose ps postgres
-          docker compose exec -T postgres psql -U postgres -d hidden-trails -c "select version_num from alembic_version;"
+          docker compose exec -T postgres sh -lc 'psql -U "$POSTGRES_USER" -d "${POSTGRES_DB:-$POSTGRES_USER}" -c "select version_num from alembic_version;"'
